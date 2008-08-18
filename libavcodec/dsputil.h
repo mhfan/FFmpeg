@@ -362,6 +362,7 @@ typedef struct DSPContext {
     qpel_mc_func avg_no_rnd_qpel_pixels_tab[2][16];
     qpel_mc_func put_mspel_pixels_tab[8];
 
+#if 1 	/* comment by mhfan */
     /**
      * h264 Chroma MC
      */
@@ -373,9 +374,11 @@ typedef struct DSPContext {
 
     qpel_mc_func put_2tap_qpel_pixels_tab[4][16];
     qpel_mc_func avg_2tap_qpel_pixels_tab[4][16];
+#endif	/* comment by mhfan */
 
     me_cmp_func pix_abs[2][4];
 
+#if 1 	/* comment by mhfan */
     /* huffyuv specific */
     void (*add_bytes)(uint8_t *dst/*align 16*/, uint8_t *src/*align 16*/, int w);
     void (*diff_bytes)(uint8_t *dst/*align 16*/, uint8_t *src1/*align 16*/, uint8_t *src2/*align 1*/,int w);
@@ -390,14 +393,17 @@ typedef struct DSPContext {
     /* this might write to dst[w] */
     void (*bswap_buf)(uint32_t *dst, const uint32_t *src, int w);
     void (*bswap16_buf)(uint16_t *dst, const uint16_t *src, int len);
+#endif	/* comment by mhfan */
 
     void (*h263_v_loop_filter)(uint8_t *src, int stride, int qscale);
     void (*h263_h_loop_filter)(uint8_t *src, int stride, int qscale);
 
     void (*h261_loop_filter)(uint8_t *src, int stride);
 
+#if CONFIG_VC1_DECODER || CONFIG_WMV2_DECODER || CONFIG_WMV2_ENCODER
     void (*x8_v_loop_filter)(uint8_t *src, int stride, int qscale);
     void (*x8_h_loop_filter)(uint8_t *src, int stride, int qscale);
+#endif  /* XXX:    by mhfan */
 
     void (*vp3_idct_dc_add)(uint8_t *dest/*align 8*/, int line_size, const DCTELEM *block/*align 16*/);
     void (*vp3_v_loop_filter)(uint8_t *src, int stride, int *bounding_values);
@@ -512,10 +518,12 @@ typedef struct DSPContext {
                                unsigned int filter_shift, int32_t mask, int blocksize,
                                int32_t *sample_buffer);
 
+#if CONFIG_VC1_DECODER || CONFIG_WMV2_DECODER || CONFIG_WMV2_ENCODER
     /* intrax8 functions */
     void (*x8_spatial_compensation[12])(uint8_t *src , uint8_t *dst, int linesize);
     void (*x8_setup_spatial_compensation)(uint8_t *src, uint8_t *dst, int linesize,
            int * range, int * sum,  int edges);
+#endif  /* XXX:    by mhfan */
 
     /**
      * Calculate scalar product of two vectors.
