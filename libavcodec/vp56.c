@@ -27,6 +27,20 @@
 #include "vp56.h"
 #include "vp56data.h"
 
+#if ARCH_BFIN
+#define attribute_l1_text
+//#define attribute_l1_text  __attribute__ ((l1_text))
+struct vp56_get_vectors_predictors {
+	int mb_width;
+	int mb_height;
+	VP56macroblock *macroblocks;
+	VP56mv *vector_candidate;
+	int *vector_candidate_pos;
+};
+
+extern int ff_bfin_vp56_get_vectors_predictors(struct vp56_get_vectors_predictors *vp56_s_t, int row, int col, vp56_frame_t ref_frame, vp56_frame_t *vp56_frame, int8_t *vp56_pos) attribute_l1_text;
+#endif
+
 
 void vp56_init_dequant(VP56Context *s, int quantizer)
 {
@@ -207,7 +221,19 @@ static VP56mb vp56_decode_mv(VP56Context *s, int row, int col)
     VP56mv *mv, vect = {0,0};
     int ctx, b;
 
+#if ARCH_BFIN
+	struct vp56_get_vectors_predictors vp56_s;
+	struct vp56_get_vectors_predictors *vp56_s_t;
+	vp56_s_t = &vp56_s;
+	vp56_s_t->mb_width = s->mb_width;
+	vp56_s_t->mb_height = s->mb_height;
+	vp56_s_t->macroblocks = s->macroblocks;
+	vp56_s_t->vector_candidate = s->vector_candidate;
+	vp56_s_t->vector_candidate_pos = &s->vector_candidate_pos;
+	ctx = ff_bfin_vp56_get_vectors_predictors(vp56_s_t, row, col, VP56_FRAME_PREVIOUS, vp56_reference_frame, vp56_candidate_predictor_pos);
+#else
     ctx = vp56_get_vectors_predictors(s, row, col, VP56_FRAME_PREVIOUS);
+#endif
     s->mb_type = vp56_parse_mb_type(s, s->mb_type, ctx);
     s->macroblocks[row * s->mb_width + col].type = s->mb_type;
 
@@ -221,12 +247,20 @@ static VP56mb vp56_decode_mv(VP56Context *s, int row, int col)
             break;
 
         case VP56_MB_INTER_V1_GF:
+#if ARCH_BFIN
+            ff_bfin_vp56_get_vectors_predictors(vp56_s_t, row, col, VP56_FRAME_GOLDEN, vp56_reference_frame, vp56_candidate_predictor_pos);
+#else
             vp56_get_vectors_predictors(s, row, col, VP56_FRAME_GOLDEN);
+#endif
             mv = &s->vector_candidate[0];
             break;
 
         case VP56_MB_INTER_V2_GF:
+#if ARCH_BFIN
+            ff_bfin_vp56_get_vectors_predictors(vp56_s_t, row, col, VP56_FRAME_GOLDEN, vp56_reference_frame, vp56_candidate_predictor_pos);
+#else
             vp56_get_vectors_predictors(s, row, col, VP56_FRAME_GOLDEN);
+#endif
             mv = &s->vector_candidate[1];
             break;
 
@@ -236,7 +270,11 @@ static VP56mb vp56_decode_mv(VP56Context *s, int row, int col)
             break;
 
         case VP56_MB_INTER_DELTA_GF:
+#if ARCH_BFIN
+            ff_bfin_vp56_get_vectors_predictors(vp56_s_t, row, col, VP56_FRAME_GOLDEN, vp56_reference_frame, vp56_candidate_predictor_pos);
+#else
             vp56_get_vectors_predictors(s, row, col, VP56_FRAME_GOLDEN);
+#endif
             s->parse_vector_adjustment(s, &vect);
             mv = &vect;
             break;
@@ -319,8 +357,16 @@ static void vp56_deblock_filter(VP56Context *s, uint8_t *yuv,
                                 int stride, int dx, int dy)
 {
     int t = vp56_filter_threshold[s->quantizer];
+#if ARCH_BFIN
+    extern void ff_bfin_vp56_edge_filter(vp56_context_t *s, uint8_t *yuv,
+	    int pix_inc, int line_inc, int t);
+
+    if (dx)  ff_bfin_vp56_edge_filter(s, yuv +         10-dx ,      1, stride, t);
+    if (dy)  ff_bfin_vp56_edge_filter(s, yuv + stride*(10-dy), stride,      1, t);
+#else
     if (dx)  vp56_edge_filter(s, yuv +         10-dx ,      1, stride, t);
     if (dy)  vp56_edge_filter(s, yuv + stride*(10-dy), stride,      1, t);
+#endif
 }
 
 static void vp56_mc(VP56Context *s, int b, int plane, uint8_t *src,
@@ -362,9 +408,16 @@ static void vp56_mc(VP56Context *s, int b, int plane, uint8_t *src,
     } else if (deblock_filtering) {
         /* only need a 12x12 block, but there is no such dsp function, */
         /* so copy a 16x12 block */
+#if ARCH_BFIN
+		extern void ff_bfin_put_pixels12(uint8_t *block, const uint8_t *pixels, int line_size, int h);
+		ff_bfin_put_pixels12(s->edge_emu_buffer,
+                                    src + s->block_offset[b] + (dy-2)*stride + (dx-2),
+                                    stride, 12);
+#else
         s->dsp.put_pixels_tab[0][0](s->edge_emu_buffer,
                                     src + s->block_offset[b] + (dy-2)*stride + (dx-2),
                                     stride, 12);
+#endif
         src_block = s->edge_emu_buffer;
         src_offset = 2 + 2*stride;
     } else {

@@ -36,6 +36,16 @@
 #include "vp56data.h"
 #include "vp6data.h"
 
+#if ARCH_BFIN
+#define attribute_l1_text  __attribute__((l1_text))
+
+extern void ff_bfin_vp6_filter_hv4_x(uint8_t *dst, uint8_t *src, int stride,
+	const int16_t *weights) attribute_l1_text;
+extern void ff_bfin_vp6_filter_hv4_y(uint8_t *dst, uint8_t *src, int stride,
+	const int16_t *weights) attribute_l1_text;
+extern void ff_bfin_vp6_filter_diag4(uint8_t *dst, uint8_t *src, int stride,
+	const int16_t *h_weights,const int16_t *v_weights) attribute_l1_text;
+#endif
 
 static void vp6_parse_coeff(VP56Context *s);
 static void vp6_parse_coeff_huffman(VP56Context *s);
@@ -564,15 +574,31 @@ static void vp6_filter(VP56Context *s, uint8_t *dst, uint8_t *src,
 
     if (filter4) {
         if (!y8) {                      /* left or right combine */
+#if ARCH_BFIN
+            ff_bfin_vp6_filter_hv4_x(dst, src+offset1, stride,
+                           vp6_block_copy_filter[select][x8]);
+#else
             vp6_filter_hv4(dst, src+offset1, stride, 1,
                            vp6_block_copy_filter[select][x8]);
+#endif
         } else if (!x8) {               /* above or below combine */
+#if ARCH_BFIN
+            ff_bfin_vp6_filter_hv4_y(dst, src+offset1, stride,
+                           vp6_block_copy_filter[select][y8]);
+#else
             vp6_filter_hv4(dst, src+offset1, stride, stride,
                            vp6_block_copy_filter[select][y8]);
+#endif
         } else {
+#if ARCH_BFIN
+            ff_bfin_vp6_filter_diag4(dst, src+offset1 + ((mv.x^mv.y)>>31),
+		    stride, vp6_block_copy_filter[select][x8],
+                            vp6_block_copy_filter[select][y8]);
+#else
             s->dsp.vp6_filter_diag4(dst, src+offset1+((mv.x^mv.y)>>31), stride,
                              vp6_block_copy_filter[select][x8],
                              vp6_block_copy_filter[select][y8]);
+#endif
         }
     } else {
         if (!x8 || !y8) {
