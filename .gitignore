@@ -66,3 +66,14 @@
 /tools/probetest
 /tools/qt-faststart
 /tools/trasher
+
+#/formats.txt
+#/codecs.txt
+
+/*-stamp*
+/debian-*
+/cscope.*
+/build.sh
+/*.deb
+/.hg*
+
