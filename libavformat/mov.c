@@ -1685,6 +1685,7 @@ static int mov_read_trak(MOVContext *c, ByteIOContext *pb, MOVAtom atom)
         st->codec->width = 0; /* let decoder init width/height */
         st->codec->height= 0;
         break;
+    default: ;
     }
 
     /* Do not need those anymore. */
