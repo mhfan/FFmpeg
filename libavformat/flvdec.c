@@ -172,6 +172,7 @@ static int amf_parse_object(AVFormatContext *s, AVStream *astream, AVStream *vst
             for(i = 0; i < arraylen && url_ftell(ioc) < max_pos - 1; i++) {
                 if(amf_parse_object(s, NULL, NULL, NULL, max_pos, depth + 1) < 0)
                     return -1; //if we couldn't skip, bomb out.
+		// TODO: index support
             }
         }
             break;
@@ -292,6 +293,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
     FLVContext *flv = s->priv_data;
     int ret, i, type, size, flags, is_audio;
     int64_t next, pos;
+    static int dup = 0;	// XXX: mhfan
     int64_t dts, pts = AV_NOPTS_VALUE;
     AVStream *st = NULL;
 
@@ -329,7 +331,8 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
         else /* skip packet */
             av_log(s, AV_LOG_DEBUG, "skipping flv packet: type %d, size %d, flags %d\n", type, size, flags);
     skip:
-        url_fseek(s->pb, next, SEEK_SET);
+	if ((ret = url_fseek(s->pb, next, SEEK_SET)) < 0)
+	    return ret; else	// XXX: mhfan
         continue;
     }
 
@@ -344,7 +347,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
             break;
     }
     if(i == s->nb_streams){
-        av_log(s, AV_LOG_ERROR, "invalid stream\n");
+        av_log(s, AV_LOG_ERROR, "invalid stream: %d\n", i);
         st= create_stream(s, is_audio);
         s->ctx_flags &= ~AVFMTCTX_NOHEADER;
     }
@@ -357,12 +360,13 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
         continue;
     }
     if ((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_KEY)
+	ff_reduce_index(s, st->index),	// XXX:
         av_add_index_entry(st, pos, dts, size, 0, AVINDEX_KEYFRAME);
     break;
  }
 
     // if not streamed and no duration from metadata then seek to end to find the duration from the timestamps
-    if(!url_is_streamed(s->pb) && (!s->duration || s->duration==AV_NOPTS_VALUE)){
+    if(!dup && !url_is_streamed(s->pb) && (!s->duration || s->duration==AV_NOPTS_VALUE)){
         int size;
         const int64_t pos= url_ftell(s->pb);
         const int64_t fsize= url_fsize(s->pb);
@@ -375,6 +379,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
             s->duration = ts * (int64_t)AV_TIME_BASE / 1000;
         }
         url_fseek(s->pb, pos, SEEK_SET);
+	dup = 1;	// XXX: mhfan
     }
 
     if(is_audio){
@@ -442,6 +447,63 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
     return ret;
 }
 
+static int flv_read_seek(AVFormatContext *s, int stream_index,
+	int64_t timestamp, int flags)
+{
+    AVStream *st = s->streams[stream_index];
+    extern int av_seek_frame_generic(AVFormatContext *s,
+	    int stream_index, int64_t timestamp, int flags);
+    if (av_seek_frame_generic(s, stream_index, timestamp, flags) < 0) {
+	// seeking support, refer to: xine-lib/src/demuxers/demux_flv.c
+	int  size;	short hasv = 0, rewind = -1;
+#ifdef	CONFIG_HHTECH_MINIPMP
+	int  seek_percent = 0, tmp;	// XXX:
+#endif
+	for (size = 0; size < s->nb_streams; ++size)
+	    if (s->streams[size]->codec->codec_type ==
+		    CODEC_TYPE_VIDEO) { hasv = 1; break; }
+
+	for (size = 0; ; ) {
+	    int plen, cpts;
+	    short type, flag;
+	    url_fseek(s->pb, size, SEEK_CUR);
+
+	    plen = get_be32(s->pb);	type = get_byte(s->pb);
+	    size = get_be24(s->pb);	cpts = get_be24(s->pb);
+	    flag = get_byte(s->pb);	cpts|= (flag << 24);	// XXX:
+	    url_fskip(s->pb, 3);	flag = get_byte(s->pb);
+	    flag = hasv && (type != FLV_TAG_TYPE_VIDEO ||
+		    !(flag & FLV_FRAME_KEY));
+
+	    if (rewind < 0) {	// XXX: assume flags == AVSEEK_FLAG_ANY
+		if (cpts - 500 < timestamp && timestamp < cpts + 500)
+		    return 0; else  rewind = (timestamp < cpts);
+		if (rewind) timestamp += 500; else timestamp -= 500;
+	    }
+	    if (rewind) {
+		if (!plen) break;	else size = -plen - 16 - 4;
+		if (flag) continue; else if (cpts < timestamp) break;
+	    } else {
+		if (url_feof(s->pb)) return -1;  else --size;
+		if (flag) continue; else	// XXX:
+		    ff_reduce_index(s, st->index),
+		    av_add_index_entry(st, url_ftell(s->pb) - 16,
+			    cpts, size, 0, AVINDEX_KEYFRAME);
+		    if (timestamp < cpts) break;
+	    }
+
+#ifdef	CONFIG_HHTECH_MINIPMP
+	    if (0 < timestamp && (seek_percent + 1) <
+		    (tmp = ((cpts * 100) / timestamp)))
+		fprintf(stdout, "ANS_SEEKED=%d\n", (seek_percent = tmp));
+#endif
+	}	url_fseek(s->pb, -16, SEEK_CUR);
+	av_update_cur_dts(s, st, timestamp);
+    }
+
+    return 0;
+}
+
 AVInputFormat flv_demuxer = {
     "flv",
     NULL_IF_CONFIG_SMALL("FLV format"),
@@ -449,6 +511,7 @@ AVInputFormat flv_demuxer = {
     flv_probe,
     flv_read_header,
     flv_read_packet,
+    //.read_seek = flv_read_seek,	// XXX: mhfan
     .extensions = "flv",
     .value = CODEC_ID_FLV1,
 };

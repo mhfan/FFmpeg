@@ -1315,7 +1315,11 @@ int av_index_search_timestamp(AVStream *st, int64_t wanted_timestamp,
         if(timestamp <= wanted_timestamp)
             a = m;
     }
+#if 0
     m= (flags & AVSEEK_FLAG_BACKWARD) ? a : b;
+#else // XXX: by jetta
+    m= (flags & AVSEEK_FLAG_BACKWARD) ? (a < 0 ? 0 : a) : b;
+#endif
 
     if(!(flags & AVSEEK_FLAG_ANY)){
         while(m>=0 && m<nb_entries && !(entries[m].flags & AVINDEX_KEYFRAME)){
@@ -1328,7 +1332,7 @@ int av_index_search_timestamp(AVStream *st, int64_t wanted_timestamp,
     return  m;
 }
 
-#define DEBUG_SEEK
+//#define DEBUG_SEEK
 
 int av_seek_frame_binary(AVFormatContext *s, int stream_index, int64_t target_ts, int flags){
     AVInputFormat *avif= s->iformat;
@@ -1536,7 +1540,7 @@ static int av_seek_frame_byte(AVFormatContext *s, int stream_index, int64_t pos,
     return 0;
 }
 
-static int av_seek_frame_generic(AVFormatContext *s,
+/*static */int av_seek_frame_generic(AVFormatContext *s,
                                  int stream_index, int64_t timestamp, int flags)
 {
     int index;
@@ -1581,10 +1585,12 @@ static int av_seek_frame_generic(AVFormatContext *s,
         return -1;
 
     av_read_frame_flush(s);
+#if 0 	/* XXX:    by mhfan */
     if (s->iformat->read_seek){
         if(s->iformat->read_seek(s, stream_index, timestamp, flags) >= 0)
             return 0;
     }
+#endif	/* comment by mhfan */
     ie = &st->index_entries[index];
     if ((ret = url_fseek(s->pb, ie->pos, SEEK_SET)) < 0)
         return ret;
@@ -2131,6 +2137,8 @@ int av_find_stream_info(AVFormatContext *ic)
 
         /* NOTE: a new stream can be added there if no header in file
            (AVFMTCTX_NOHEADER) */
+       // for some FLV which audio stream is before video stream.
+   if ((ret = av_read_frame_internal(ic, &pkt1)) < 0)	// XXX: mhfan
         ret = av_read_frame_internal(ic, &pkt1);
         if(ret == AVERROR(EAGAIN))
             continue;
@@ -2538,6 +2546,7 @@ int av_write_header(AVFormatContext *s)
                 return -1;
             }
             break;
+	default: ;
         }
 
         if(s->oformat->codec_tag){
