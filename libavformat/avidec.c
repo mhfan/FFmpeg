@@ -29,7 +29,7 @@
 #include "dv.h"
 #include "riff.h"
 
-#undef NDEBUG
+//#undef NDEBUG
 #include <assert.h>
 
 typedef struct AVIStream {
@@ -155,8 +155,10 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             return -1;
     }
 
-    for(i=0; i<entries_in_use; i++){
-        if(index_type){
+    // TODO: allocate once and do limit
+
+    if(index_type)
+	for(i=0; i<entries_in_use; i++){
             int64_t pos= get_le32(pb) + base - 8;
             int len    = get_le32(pb);
             int key= len >= 0;
@@ -171,6 +173,8 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             if(last_pos == pos || pos == base - 8)
                 avi->non_interleaved= 1;
             if(last_pos != pos && (len || !ast->sample_size))
+	    if (st->codec->codec_type == CODEC_TYPE_VIDEO && !key) ; else
+		ff_reduce_index(s, st->index),	// XXX: mhfan
                 av_add_index_entry(st, pos, ast->cum_len, len, 0, key ? AVINDEX_KEYFRAME : 0);
 
             if(ast->sample_size)
@@ -178,7 +182,8 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             else
                 ast->cum_len ++;
             last_pos= pos;
-        }else{
+    } else // XXX: mhfan
+	for(i=0; i<entries_in_use; i++){
             int64_t offset, pos;
             int duration;
             offset = get_le64(pb);
@@ -195,7 +200,6 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             frame_num += duration;
 
             url_fseek(pb, pos, SEEK_SET);
-        }
     }
     avi->index_loaded=1;
     return 0;
@@ -221,7 +225,10 @@ static void clean_index(AVFormatContext *s){
         size= st->index_entries[0].size;
         ts= st->index_entries[0].timestamp;
 
+	// TODO: allocate once and do limit, mhfan
+
         for(j=0; j<size; j+=max){
+	    ff_reduce_index(s, st->index),	// XXX: mhfan
             av_add_index_entry(st, pos+j, ts+j, FFMIN(max, size-j), 0, AVINDEX_KEYFRAME);
         }
     }
@@ -430,6 +437,8 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                 break;
             case MKTAG('a', 'u', 'd', 's'):
                 codec_type = CODEC_TYPE_AUDIO;
+		if (!ast->sample_size && ast->scale == 1)
+		     ast->sample_size = 1;	// XXX: mhfan
                 break;
             case MKTAG('t', 'x', 't', 's'):
                 //FIXME
@@ -918,6 +927,7 @@ resync:
                 if(size || !ast->sample_size){
                     uint64_t pos= url_ftell(pb) - 8;
                     if(!st->index_entries || !st->nb_index_entries || st->index_entries[st->nb_index_entries - 1].pos < pos){
+			ff_reduce_index(s, st->index),	// XXX: mhfan
                         av_add_index_entry(st, pos, ast->frame_offset, size, 0, AVINDEX_KEYFRAME);
                     }
                 }
@@ -944,6 +954,8 @@ static int avi_read_idx1(AVFormatContext *s, int size)
     nb_index_entries = size / 16;
     if (nb_index_entries <= 0)
         return -1;
+
+    // TODO: allocate once and do limit, mhfan
 
     /* Read the entries and sort them in each stream component. */
     for(i = 0; i < nb_index_entries; i++) {
@@ -975,6 +987,9 @@ static int avi_read_idx1(AVFormatContext *s, int size)
         if(last_pos == pos)
             avi->non_interleaved= 1;
         else if(len || !ast->sample_size)
+	    if (st->codec->codec_type == CODEC_TYPE_VIDEO &&
+		    !(flags & AVIIF_INDEX)) ; else
+		ff_reduce_index(s, st->index),	// XXX: mhfan
             av_add_index_entry(st, pos, ast->cum_len, len, 0, (flags&AVIIF_INDEX) ? AVINDEX_KEYFRAME : 0);
         if(ast->sample_size)
             ast->cum_len += len;
