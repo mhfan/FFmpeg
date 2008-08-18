@@ -37,11 +37,19 @@
 #include "flv.h"
 #include "mpeg4video.h"
 
+#if ARCH_BFIN
+#include "bfin/mc_dma.c"
+#endif// XXX: mhfan
+
 //#define DEBUG
 //#define PRINT_FRAME_TIME
 
 av_cold int ff_h263_decode_init(AVCodecContext *avctx)
 {
+#ifdef _PROFILING_
+    init_timer();
+#endif
+
     MpegEncContext *s = avctx->priv_data;
 
     s->avctx = avctx;
@@ -124,6 +132,9 @@ av_cold int ff_h263_decode_end(AVCodecContext *avctx)
 {
     MpegEncContext *s = avctx->priv_data;
 
+#ifdef	_PROFILING_
+    write_timer();
+#endif
     MPV_common_end(s);
     return 0;
 }
@@ -214,15 +225,40 @@ static int decode_slice(MpegEncContext *s){
             s->mv_type = MV_TYPE_16X16;
 //            s->mb_skipped = 0;
 //printf("%d %d %06X\n", ret, get_bits_count(&s->gb), show_bits(&s->gb, 24));
+#ifdef BFIN_MDMA
+#define DCT_BUF_SIZE 64*8/*12*/*sizeof(DCTELEM)
+	    if (s->codec_id==CODEC_ID_MPEG4) {
+		int i;
+		MPV_dma_update_buffer(&s->block);
+		for(i=0;i<8;i++) s->pblocks[i] = (short *)(&s->block[i]);
+	    }
+#endif
+#ifdef _PROFILING_
+	    start_timer();
+#endif
             ret= s->decode_mb(s, s->block);
 
+#ifdef _PROFILING_
+	    stop_vld_timer();
+#endif
             if (s->pict_type!=FF_B_TYPE)
                 ff_h263_update_motion_val(s);
 
             if(ret<0){
                 const int xy= s->mb_x + s->mb_y*s->mb_stride;
                 if(ret==SLICE_END){
+#ifdef _PROFILING_
+		    start_timer();
+#endif
+#ifdef BFIN_MDMA
+		    if(s->codec_id==CODEC_ID_MPEG4 &&!s->divx_packed)
+			MPV_dma_decode_mbinter(s, 0); else
+#endif
                     MPV_decode_mb(s, s->block);
+
+#ifdef _PROFILING_
+		    stop_comp_timer();
+#endif
                     if(s->loop_filter)
                         ff_h263_loop_filter(s);
 
@@ -248,7 +284,17 @@ static int decode_slice(MpegEncContext *s){
                 return -1;
             }
 
+#ifdef _PROFILING_
+	    start_timer();
+#endif
+#ifdef BFIN_MDMA
+	    if(s->codec_id==CODEC_ID_MPEG4 && !s->divx_packed)
+		MPV_dma_decode_mbinter(s, 0); else
+#endif
             MPV_decode_mb(s, s->block);
+#ifdef _PROFILING_
+	    stop_comp_timer();
+#endif
             if(s->loop_filter)
                 ff_h263_loop_filter(s);
         }
@@ -338,6 +384,10 @@ int ff_h263_decode_frame(AVCodecContext *avctx,
     int ret;
     AVFrame *pict = data;
 
+#ifdef _PROFILING_
+    start_global_timer();
+#endif
+
 #ifdef PRINT_FRAME_TIME
 uint64_t time= rdtsc();
 #endif
@@ -385,6 +435,9 @@ retry:
     if (!s->context_initialized) {
         if (MPV_common_init(s) < 0) //we need the idct permutaton for reading a custom matrix
             return -1;
+#ifdef BFIN_MDMA
+	dma_para_init(s);
+#endif
     }
 
     /* We need to set current_picture_ptr before reading the header,
@@ -720,6 +773,9 @@ assert(s->current_picture.pict_type == s->pict_type);
 
 #ifdef PRINT_FRAME_TIME
 av_log(avctx, AV_LOG_DEBUG, "%"PRId64"\n", rdtsc()-time);
+#endif
+#ifdef _PROFILING_
+    stop_global_timer();
 #endif
 
     return get_consumed_bytes(s, buf_size);
