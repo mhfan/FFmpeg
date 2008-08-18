@@ -739,3 +739,63 @@ DEFUN(sse16,mL1,
 DEFUN_END(sse16)
 
 
+/*
+ * put_h264_chroma_mc8 blackfin asm version
+ * Author: gph(jason.geng@hhcn.com)
+ * Date: 2007.8.8
+ * Copyright: GPL v2.0 or later
+ */
+
+DEFUN(put_h264_chroma_mc8, mL1,
+	    (uint8_t *dst/*align 8*/, uint8_t *src0/*align 1*/, uint8_t *src1,
+	      int stride, int h, int a, int b)):
+
+	I3=R0;        // dst
+	I0=R1;        // src0
+	I1=R2;        // src1
+
+	R0=ASTAT;   //Set biased-round mode. The default is not correct usually for video processing.
+	B0=R0;
+	BITSET(R0,8);
+	ASTAT=R0;
+
+	R0=[SP+12];   // stride
+	P0=[SP+16];   // h
+
+    R0+=-4; M3=R0; R0+=-4; M0=R0;
+    R0=[SP+20];   // a
+    R1=[SP+24];   // b
+
+	R0.H = R1.L >> 0; //R0: b|a
+	[--SP] = (R7:4);
+    R7 = R0 << 9 (v);
+
+    DISALGNEXCPT    || R0 = [I0++]  || R2  =[I1++];
+    LSETUP(phcm$0,phcm$1) LC0=P0;
+phcm$0: DISALGNEXCPT    || R1 = [I0++]  || R3  =[I1++];
+    (R5,R4) = BYTEUNPACK R1:0;
+    A0 = R4.L*R7.L, A1 = R4.H*R7.L;
+    R0 = I0; I0 = I1; //we had to do this because BYTEUNPACK will only use I0.
+	(R6,R4) = BYTEUNPACK R3:2;
+    I0 = R0;
+    R4.L=(A0+= R4.L*R7.H), R4.H=(A1+= R4.H*R7.H);
+    A0 = R5.L*R7.L, A1 = R5.H*R7.L;
+    R5.L=(A0+= R6.L*R7.H), R5.H=(A1+= R6.H*R7.H);
+    R6 = BYTEPACK(R4, R5)|| R0 = [I0++M0]|| R2  =[I1++M0];
+
+    (R5,R4) = BYTEUNPACK R1:0(r) || [I3++]=R6;
+    A0 = R4.L*R7.L, A1 = R4.H*R7.L;
+    R0 = I0; I0 = I1;
+    (R6,R4) = BYTEUNPACK R3:2(r);
+    I0 = R0;
+    R4.L=(A0+= R4.L*R7.H), R4.H=(A1+= R4.H*R7.H);
+    A0 = R5.L*R7.L, A1 = R5.H*R7.L;
+    R5.L=(A0+= R6.L*R7.H), R5.H=(A1+= R6.H*R7.H);
+    R6 = BYTEPACK(R4, R5) || R0 = [I0++];
+phcm$1: DISALGNEXCPT  || R2 = [I1++]  || [I3++M3] = R6;
+
+	R0=B0;
+    ASTAT=R0;
+    (R7:4)=[SP++];
+    RTS;
+DEFUN_END(put_h264_chroma_mc8)
