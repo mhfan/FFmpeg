@@ -124,6 +124,7 @@ typedef struct {
     int packet_time_delta;
     int packet_time_start;
     int64_t packet_pos;
+    int32_t start_time;	// XXX: mhfan
 
     int stream_index;
 

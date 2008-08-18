@@ -235,7 +235,7 @@ static int asf_read_header(AVFormatContext *s, AVFormatParameters *ap)
             int type_specific_size, sizeX;
             uint64_t total_size;
             unsigned int tag1;
-            int64_t pos1, pos2, start_time;
+            int64_t pos1, pos2; //start_time;	// XXX; mhfan
             int test_for_ext_stream_audio, is_dvr_ms_audio=0;
 
             pos1 = url_ftell(pb);
@@ -248,13 +248,13 @@ static int asf_read_header(AVFormatContext *s, AVFormatParameters *ap)
             if (!asf_st)
                 return AVERROR(ENOMEM);
             st->priv_data = asf_st;
-            start_time = asf->hdr.preroll;
+            asf->start_time = asf->hdr.preroll;
 
             asf_st->stream_language_index = 128; // invalid stream index means no language info
 
             if(!(asf->hdr.flags & 0x01)) { // if we aren't streaming...
                 st->duration = asf->hdr.play_time /
-                    (10000000 / 1000) - start_time;
+                    (10000000 / 1000) - asf->start_time;
             }
             get_guid(pb, &g);
 
@@ -849,6 +849,7 @@ static int ff_asf_parse_packet(AVFormatContext *s, ByteIOContext *pb, AVPacket *
             av_new_packet(&asf_st->pkt, asf->packet_obj_size);
             asf_st->seq = asf->packet_seq;
             asf_st->pkt.dts = asf->packet_frag_timestamp;
+	    asf_st->pkt.dts-= asf->start_time;	// XXX: mhfan
             asf_st->pkt.stream_index = asf->stream_index;
             asf_st->pkt.pos =
             asf_st->packet_pos= asf->packet_pos;
@@ -982,6 +983,7 @@ static void asf_reset_header(AVFormatContext *s)
     asf->packet_obj_size = 0;
     asf->packet_time_delta = 0;
     asf->packet_time_start = 0;
+    asf->start_time = 0;
 
     for(i=0; i<s->nb_streams; i++){
         asf_st= s->streams[i]->priv_data;
