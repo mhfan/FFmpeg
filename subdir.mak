@@ -6,7 +6,7 @@ LIBVERSION := $(lib$(NAME)_VERSION)
 LIBMAJOR   := $(lib$(NAME)_VERSION_MAJOR)
 
 ifdef CONFIG_STATIC
-all: $(SUBDIR)$(LIBNAME)
+all: $(EXTRADEPS) $(SUBDIR)$(LIBNAME)
 
 install-libs: install-lib$(NAME)-static
 
@@ -44,7 +44,7 @@ distclean:: clean
             $(addprefix $(SUBDIR), $(foreach suffix,$(DISTCLEANSUFFIXES),$(addsuffix /$(suffix),$(DIRS))))
 
 ifdef CONFIG_SHARED
-all: $(SUBDIR)$(SLIBNAME)
+all: $(EXTRADEPS) $(SUBDIR)$(SLIBNAME)
 
 install-libs: install-lib$(NAME)-shared
 
