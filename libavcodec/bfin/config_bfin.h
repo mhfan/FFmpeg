@@ -36,6 +36,22 @@ DEFUN(put_pixels_clamped,mL1,
 #ifndef DEFUN
 
 #define mL3 .text
+
+#if 1 	/* comment by mhfan */
+//#define USE_L1CODE 1	// XXX:
+//#define USE_L1DATA 1	// XXX:
+#define BFIN_MC_AVG_ASM 1
+
+#ifdef	USE_L1CODE
+#define L1CODE __attribute__((l1_text))
+#else
+#define L1CODE
+#define mL1 mL3
+#endif//USE_L1CODE
+
+#define MEM mL1	// XXX: mL1
+#endif	/* comment by mhfan */
+
 #ifndef mL1
 #if defined(__FDPIC__) && CONFIG_SRAM
 #define mL1 .l1.text
@@ -53,6 +69,13 @@ DEFUN(put_pixels_clamped,mL1,
 
 #define DEFUN_END(fname) \
         .size _ff_bfin_ ## fname, . - _ff_bfin_ ## fname
+
+#define DECL_FUNC(fname) \
+	 .global _ff_bfin_ ## fname; \
+	 .align 8;	 \
+	 _ff_bfin_ ## fname
+#define END_FUNC(fname)	 \
+	 .size _ff_bfin ## fname, . - ff_bfin_ ## fname
 
 #ifdef __FDPIC__
 #define RELOC(reg,got,obj) reg = [got + obj@GOT17M4]

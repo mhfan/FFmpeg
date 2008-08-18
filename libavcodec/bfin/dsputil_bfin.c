@@ -24,12 +24,16 @@
 #include "libavcodec/avcodec.h"
 #include "libavcodec/dsputil.h"
 #include "dsputil_bfin.h"
+#include "config_bfin.h"	// mhfan
 
 int off;
 
 
 void ff_bfin_idct (DCTELEM *block) attribute_l1_text;
 void ff_bfin_fdct (DCTELEM *block) attribute_l1_text;
+void ff_bfin_idct_row(int16_t *input) attribute_l1_text;
+void ff_bfin_idct_column_put(uint8_t *dst, int stride, int16_t *input) attribute_l1_text;
+void ff_bfin_idct_column_add(uint8_t *dst, int stride, int16_t *input) attribute_l1_text;
 void ff_bfin_vp3_idct (DCTELEM *block);
 void ff_bfin_vp3_idct_put (uint8_t *dest, int line_size, DCTELEM *block);
 void ff_bfin_vp3_idct_add (uint8_t *dest, int line_size, DCTELEM *block);
@@ -58,8 +62,58 @@ int ff_bfin_sse4  (void *v, uint8_t *pix1, uint8_t *pix2, int line_size, int h) 
 int ff_bfin_sse8  (void *v, uint8_t *pix1, uint8_t *pix2, int line_size, int h) attribute_l1_text;
 int ff_bfin_sse16 (void *v, uint8_t *pix1, uint8_t *pix2, int line_size, int h) attribute_l1_text;
 
+#define ff_bfin_avg_no_rnd_pixels8 ff_bfin_avg_pixels8
 
-static void bfin_idct_add (uint8_t *dest, int line_size, DCTELEM *block)
+void ff_bfin_avg_pixels8(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels8_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels8_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels8_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels8_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels8_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels8_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels16(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels16_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels16_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_pixels16_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels16(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels16_x2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels16_y2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+void ff_bfin_avg_no_rnd_pixels16_xy2(uint8_t *block, const uint8_t *pixels, int line_size, int h) attribute_l1_text;
+
+#define CALL_2X_PIXELS_L1(a, b, n)\
+void a(uint8_t *block, const uint8_t *pixels, int line_size, int h) {\
+    b(block  , pixels  , line_size, h);\
+    b(block+n, pixels+n, line_size, h);\
+}
+
+CALL_2X_PIXELS_L1(ff_bfin_avg_pixels16, ff_bfin_avg_pixels8, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_pixels16_x2, ff_bfin_avg_pixels8_x2, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_pixels16_y2, ff_bfin_avg_pixels8_y2, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_pixels16_xy2, ff_bfin_avg_pixels8_xy2, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_no_rnd_pixels16, ff_bfin_avg_pixels8, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_no_rnd_pixels16_x2, ff_bfin_avg_no_rnd_pixels8_x2, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_no_rnd_pixels16_y2, ff_bfin_avg_no_rnd_pixels8_y2, 8)
+CALL_2X_PIXELS_L1(ff_bfin_avg_no_rnd_pixels16_xy2, ff_bfin_avg_no_rnd_pixels8_xy2, 8)
+
+void ff_bfin_put_h264_chroma_mc8( uint8_t *dst/*align 8*/,
+		    uint8_t *src0/*align 1*/, uint8_t *src1/*align 1*/,
+		    int stride, int h, int a, int b) attribute_l1_text;
+
+void put_h264_chroma_mc8_bfin(uint8_t *dst/*align 8*/,
+		    uint8_t *src/*align 1*/, int stride, int h, int x, int y)
+{
+    int A,B,C;
+    if (y==0){
+	A=8*(8-x); B=8*x;
+        ff_bfin_put_h264_chroma_mc8(dst, src, src+1, stride, h, A, B);
+    } else
+    if (x==0){
+        A=8*(8-y); C=8*y;
+        ff_bfin_put_h264_chroma_mc8(dst, src, src+stride, stride, h, A, C);
+    }
+}
+
+void bfin_idct_add (uint8_t *dest, int line_size, DCTELEM *block)
 {
     ff_bfin_idct (block);
     ff_bfin_add_pixels_clamped (block, dest, line_size);
@@ -71,6 +125,15 @@ static void bfin_idct_put (uint8_t *dest, int line_size, DCTELEM *block)
     ff_bfin_put_pixels_clamped (block, dest, line_size);
 }
 
+void ff_vp3_idct_put_bfin(uint8_t *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/){
+    ff_bfin_idct_row(block);
+    ff_bfin_idct_column_put(dest, line_size, block);
+}
+
+void ff_vp3_idct_add_bfin(uint8_t *dest/*align 8*/, int line_size, DCTELEM *block/*align 16*/){
+    ff_bfin_idct_row(block);
+    ff_bfin_idct_column_add(dest, line_size, block);
+}
 
 static void bfin_clear_blocks (DCTELEM *blocks)
 {
@@ -86,6 +149,24 @@ static void bfin_clear_blocks (DCTELEM *blocks)
 }
 
 
+void bfin_put_pixels8_new (uint8_t *block, const uint8_t *pixels, int line_size, int h)
+{
+    asm(    "I3=R0;     /*block*/"
+            "I0=R1;     /*pixels*/"
+            "I1=R1;     /*pixels*/"
+            "P0=%0;     /*h*/"
+            "R2+=-4; M3=R2;"
+            "R2+=-4; M0=R2;"
+            "DISALGNEXCPT                || R0 = [I0++]  || R2 = [I1++];"
+            "LSETUP(pp80$0,pp80$1) LC0=P0;"
+            "pp80$0:  DISALGNEXCPT       || R1 = [I0++]  || R3 = [I1++];"
+            "R6 = BYTEOP1P(R1:0,R3:2)    || R0 = [I0++M0]|| R2 = [I1++M0];"
+            "R7 = BYTEOP1P(R1:0,R3:2)(R) || R0 = [I0++]  || [I3++] = R6 ;"
+            "pp80$1:  DISALGNEXCPT       || R2 = [I1++]  || [I3++M3] = R7;"
+            :
+            :"m"(h)
+            :"R0", "R1", "R2", "R3", "P0", "I0", "I1", "I3", "M0", "M3", "R6", "R7");
+}
 
 static void bfin_put_pixels8 (uint8_t *block, const uint8_t *pixels, int line_size, int h)
 {
@@ -172,7 +253,11 @@ static int bfin_vsad (void *c, uint8_t *blk1, uint8_t *blk2, int stride, int h) 
         + ff_bfin_z_sad16x16 (blk2,blk2+stride,stride<<1,stride<<1,h);
 }
 
+#ifdef	USE_L1DATA
 static uint8_t vtmp_blk[256] attribute_l1_data_b;
+#else// mhfan
+static uint8_t vtmp_blk[256];
+#endif//USE_L1DATA
 
 static int bfin_pix_abs16_x2 (void *c, uint8_t *blk1, uint8_t *blk2, int line_size, int h)
 {
@@ -215,6 +300,19 @@ static int bfin_pix_abs8_xy2 (void *c, uint8_t *blk1, uint8_t *blk2, int line_si
     return ff_bfin_z_sad8x8 (blk1, vtmp_blk, line_size, 8, h);
 }
 
+static void prefetch_bfin(void* mem, int stride, int h)
+{
+#if 1
+    unsigned long p = (unsigned long)mem;
+    for (p &= (~31); h--; p += stride)
+	  asm volatile("prefetch [%0];" :: "a"(p));
+#else// XXX:
+    unsigned long e, p = (unsigned long)mem;
+    for ( ; h--; p = e)
+	for (e = p + stride, p &= (~31); p < e; )
+	    asm volatile("prefetch [%0++];" :: "a"(p));
+#endif
+}
 
 /*
   decoder optimization
@@ -229,6 +327,7 @@ static int bfin_pix_abs8_xy2 (void *c, uint8_t *blk1, uint8_t *blk2, int line_si
 
 void dsputil_init_bfin( DSPContext* c, AVCodecContext *avctx )
 {
+    //c->prefetch	  = prefetch_bfin;
     c->get_pixels         = ff_bfin_get_pixels;
     c->diff_pixels        = ff_bfin_diff_pixels;
     c->put_pixels_clamped = ff_bfin_put_pixels_clamped;
@@ -292,6 +391,21 @@ void dsputil_init_bfin( DSPContext* c, AVCodecContext *avctx )
     c->put_no_rnd_pixels_tab[0][2] = bfin_put_pixels16_y2_nornd;
 /*     c->put_no_rnd_pixels_tab[0][3] = ff_bfin_put_pixels16_xy2_nornd; */
 
+#ifdef	BFIN_MC_AVG_ASM	// Added by gph, 2007-07
+#define dspfunc(PFX, IDX, NUM) \
+    c->PFX ## _pixels_tab[IDX][0] = ff_bfin_ ## PFX ## _pixels ## NUM;\
+    c->PFX ## _pixels_tab[IDX][1] = ff_bfin_ ## PFX ## _pixels ## NUM ## _x2;\
+    c->PFX ## _pixels_tab[IDX][2] = ff_bfin_ ## PFX ## _pixels ## NUM ## _y2;\
+    c->PFX ## _pixels_tab[IDX][3] = ff_bfin_ ## PFX ## _pixels ## NUM ## _xy2;
+
+#if 0 //bug: shake
+    dspfunc(avg, 0, 16);
+    dspfunc(avg_no_rnd, 0, 16);
+    dspfunc(avg, 1, 8);
+#endif
+    dspfunc(avg_no_rnd, 1, 8);
+#endif//BFIN_MC_AVG_ASM
+
     if (avctx->dct_algo == FF_DCT_AUTO)
         c->fdct               = ff_bfin_fdct;
 
@@ -300,6 +414,11 @@ void dsputil_init_bfin( DSPContext* c, AVCodecContext *avctx )
         c->idct               = ff_bfin_vp3_idct;
         c->idct_add           = ff_bfin_vp3_idct_add;
         c->idct_put           = ff_bfin_vp3_idct_put;
+	//c->idct_add         = ff_vp3_idct_add_bfin;
+	//c->idct_put         = ff_vp3_idct_put_bfin;
+
+	c->put_pixels_tab[1][0] = bfin_put_pixels8_new;
+	c->put_h264_chroma_pixels_tab[0]= put_h264_chroma_mc8_bfin;
     } else if (avctx->idct_algo == FF_IDCT_AUTO) {
         c->idct_permutation_type = FF_NO_IDCT_PERM;
         c->idct               = ff_bfin_idct;
@@ -307,6 +426,4 @@ void dsputil_init_bfin( DSPContext* c, AVCodecContext *avctx )
         c->idct_put           = bfin_idct_put;
     }
 }
-
-
 
