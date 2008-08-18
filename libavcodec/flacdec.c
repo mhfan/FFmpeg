@@ -793,6 +793,7 @@ static void flac_flush(AVCodecContext *avctx)
 {
     FLACContext *s = avctx->priv_data;
 
+    //s->max_framesize=	// XXX: mhfan
     s->bitstream_size=
     s->bitstream_index= 0;
 }
