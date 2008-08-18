@@ -51,3 +51,14 @@ tools/probetest
 tools/qt-faststart
 tools/trasher
 version.h
+
+/formats.txt
+/codecs.txt
+
+/*-stamp*
+/debian-*
+/cscope.*
+/build.sh
+/*.deb
+/.hg*
+
