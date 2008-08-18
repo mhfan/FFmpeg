@@ -75,6 +75,14 @@ typedef struct Vp3Fragment {
 /* special internal mode */
 #define MODE_COPY             8
 
+#if ARCH_BFIN
+#define attribute_l1_text
+//#define attribute_l1_text  __attribute__ ((l1_text))
+
+extern void ff_bfin_horizontal_filter(unsigned char *first_pixel, int stride, int *bounding_values) attribute_l1_text;
+extern void ff_bfin_vertical_filter(unsigned char *first_pixel, int stride, int *bounding_values) attribute_l1_text;
+#endif
+
 /* There are 6 preset schemes, plus a free-form scheme */
 static const int ModeAlphabet[6][CODING_MODE_COUNT] =
 {
@@ -1741,6 +1749,11 @@ static av_cold int vp3_decode_init(AVCodecContext *avctx)
         s->last_frame.data[i] = NULL;
         s->golden_frame.data[i] = NULL;
     }
+
+#if ARCH_BFIN
+    s->dsp.vp3_h_loop_filter = ff_bfin_horizontal_filter;
+    s->dsp.vp3_h_loop_filter = ff_bfin_vertical_filter;
+#endif// XXX:
 
     return allocate_tables(avctx);
 

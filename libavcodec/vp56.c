@@ -29,6 +29,19 @@
 #include "vp56.h"
 #include "vp56data.h"
 
+#if ARCH_BFIN
+#define attribute_l1_text
+//#define attribute_l1_text  __attribute__ ((l1_text))
+struct vp56_get_vectors_predictors {
+	int mb_width;
+	int mb_height;
+	VP56macroblock *macroblocks;
+	VP56mv *vector_candidate;
+	int *vector_candidate_pos;
+};
+
+extern int ff_bfin_vp56_get_vectors_predictors(struct vp56_get_vectors_predictors *vp56_s_t, int row, int col, vp56_frame_t ref_frame, vp56_frame_t *vp56_frame, int8_t *vp56_pos) attribute_l1_text;
+#endif
 
 void ff_vp56_init_dequant(VP56Context *s, int quantizer)
 {
@@ -209,6 +222,21 @@ static VP56mb vp56_decode_mv(VP56Context *s, int row, int col)
     VP56mv *mv, vect = {0,0};
     int ctx, b;
 
+#if ARCH_BFIN
+	struct vp56_get_vectors_predictors vp56_s;
+	struct vp56_get_vectors_predictors *vp56_s_t;
+	vp56_s_t = &vp56_s;
+	vp56_s_t->mb_width = s->mb_width;
+	vp56_s_t->mb_height = s->mb_height;
+	vp56_s_t->macroblocks = s->macroblocks;
+	vp56_s_t->vector_candidate = s->vector_candidate;
+	vp56_s_t->vector_candidate_pos = &s->vector_candidate_pos;
+
+#define vp56_get_vectors_predictors(a, b, c, d) \
+	ff_bfin_vp56_get_vectors_predictors(vp56_s_t, b, c, d, \
+		vp56_reference_frame, vp56_candidate_predictor_pos)
+#endif
+
     ctx = vp56_get_vectors_predictors(s, row, col, VP56_FRAME_PREVIOUS);
     s->mb_type = vp56_parse_mb_type(s, s->mb_type, ctx);
     s->macroblocks[row * s->mb_width + col].type = s->mb_type;
@@ -306,6 +334,17 @@ static void vp56_deblock_filter(VP56Context *s, uint8_t *yuv,
                                 int stride, int dx, int dy)
 {
     int t = vp56_filter_threshold[s->quantizer];
+
+#if ARCH_BFIN
+    extern void ff_bfin_vp56_edge_filter(vp56_context_t *s, uint8_t *yuv,
+	    int pix_inc, int line_inc, int t);
+
+    if (dx)  ff_bfin_vp56_edge_filter(s, yuv +         10-dx ,      1, stride, t);
+    if (dy)  ff_bfin_vp56_edge_filter(s, yuv + stride*(10-dy), stride,      1, t);
+
+    return;
+#endif
+
     if (dx)  s->vp56dsp.edge_filter_hor(yuv +         10-dx , stride, t);
     if (dy)  s->vp56dsp.edge_filter_ver(yuv + stride*(10-dy), stride, t);
 }
@@ -697,6 +736,15 @@ av_cold void ff_vp56_init(AVCodecContext *avctx, int flip, int has_alpha)
         s->frbi = 0;
         s->srbi = 2;
     }
+
+#if ARCH_BFIN
+  {
+    extern void ff_bfin_put_pixels12(uint8_t *block,
+	    const uint8_t *pixels, int line_size, int h);
+    s->dsp.put_pixels_tab[0][0] = ff_bfin_put_pixels12;;
+  }
+#endif
+
 }
 
 av_cold int ff_vp56_free(AVCodecContext *avctx)
