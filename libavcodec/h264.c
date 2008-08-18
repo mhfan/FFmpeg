@@ -2379,6 +2379,7 @@ static int init_poc(H264Context *h){
     return 0;
 }
 
+int last_pps_id = 0;	// mhfan
 
 /**
  * initialize scan tables
@@ -2594,7 +2595,11 @@ static int decode_slice_header(H264Context *h, H264Context *h0){
     }
     if(!h0->pps_buffers[pps_id]) {
         av_log(h->s.avctx, AV_LOG_ERROR, "non-existing PPS %u referenced\n", pps_id);
+#if 1
+	pps_id = last_pps_id;
+#else// XXX: mhfan
         return -1;
+#endif
     }
     h->pps= *h0->pps_buffers[pps_id];
 

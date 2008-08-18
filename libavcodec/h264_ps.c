@@ -170,8 +170,13 @@ static inline int decode_vui_parameters(H264Context *h, SPS *sps){
         }else if(aspect_ratio_idc < FF_ARRAY_ELEMS(pixel_aspect)){
             sps->sar=  pixel_aspect[aspect_ratio_idc];
         }else{
-            av_log(h->s.avctx, AV_LOG_ERROR, "illegal aspect ratio\n");
+            av_log(h->s.avctx, AV_LOG_ERROR, "illegal aspect ratio %d\n",
+		    aspect_ratio_idc);
+#if 1
+	    sps->sar.num= sps->sar.den= 0;
+#else// mhfan
             return -1;
+#endif
         }
     }else{
         sps->sar.num=
@@ -488,6 +493,7 @@ build_qp_table(PPS *pps, int t, int index, const int depth)
 int ff_h264_decode_picture_parameter_set(H264Context *h, int bit_length){
     MpegEncContext * const s = &h->s;
     unsigned int pps_id= get_ue_golomb(&s->gb);
+    extern int last_pps_id;
     PPS *pps;
     const int qp_bd_offset = 6*(h->sps.bit_depth_luma-8);
     int bits_left;
@@ -497,6 +503,7 @@ int ff_h264_decode_picture_parameter_set(H264Context *h, int bit_length){
         return -1;
     }
 
+    last_pps_id = pps_id;	// mhfan
     pps= av_mallocz(sizeof(PPS));
     if(pps == NULL)
         return -1;
