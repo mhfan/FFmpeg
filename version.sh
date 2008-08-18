@@ -8,7 +8,8 @@ test $revision || revision=$(cd "$1" && sed -n -e '/^dir$/{n
 p
 q
 }' .svn/entries 2>/dev/null)
-test $revision && revision=SVN-r$revision
+test $revision && revision=-r$revision
+[ -d .hg ] && hgrev=$(LC_ALL=C hg parents 2> /dev/null | \grep '^changeset:' | cut -d':' -f3) && revision=$revision-h$hgrev
 
 # check for git svn revision number
 if ! test $revision; then
@@ -19,7 +20,7 @@ fi
 # check for git short hash
 if ! test $revision; then
     revision=$(cd "$1" && git log -1 --pretty=format:%h 2> /dev/null)
-    test $revision && revision=git-$revision
+    test $revision && revision=-g$revision
 fi
 
 # no revision number found
@@ -38,3 +39,4 @@ OLD_REVISION=$(cat version.h 2> /dev/null)
 if test "$NEW_REVISION" != "$OLD_REVISION"; then
     echo "$NEW_REVISION" > "$2"
 fi
+
