@@ -262,6 +262,7 @@ static int amf_parse_object(AVFormatContext *s, AVStream *astream, AVStream *vst
             for(i = 0; i < arraylen && avio_tell(ioc) < max_pos - 1; i++) {
                 if(amf_parse_object(s, NULL, NULL, NULL, max_pos, depth + 1) < 0)
                     return -1; //if we couldn't skip, bomb out.
+		// TODO: index support
             }
         }
             break;
@@ -411,12 +412,15 @@ static int flv_get_extradata(AVFormatContext *s, AVStream *st, int size)
     return 0;
 }
 
+extern void ff_reduce_index(AVFormatContext *s, int stream_index);
+
 static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
     FLVContext *flv = s->priv_data;
     int ret, i, type, size, flags;
     int stream_type=-1;
     int64_t next, pos;
+    static int dup = 0;	// XXX: mhfan
     int64_t dts, pts = AV_NOPTS_VALUE;
     AVStream *st = NULL;
 
@@ -459,7 +463,8 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
     } else {
         av_log(s, AV_LOG_DEBUG, "skipping flv packet: type %d, size %d, flags %d\n", type, size, flags);
     skip:
-        avio_seek(s->pb, next, SEEK_SET);
+	if ((ret = avio_seek(s->pb, next, SEEK_SET)) < 0)
+	    return ret; else	// XXX: mhfan
         continue;
     }
 
@@ -474,7 +479,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
             break;
     }
     if(i == s->nb_streams){
-        av_log(s, AV_LOG_WARNING, "Stream discovered after head already parsed\n");
+        av_log(s, AV_LOG_WARNING, "Stream discovered after head already parsed: %d\n", i);
         st= create_stream(s, stream_type);
         s->ctx_flags &= ~AVFMTCTX_NOHEADER;
     }
@@ -487,12 +492,13 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
         continue;
     }
     if ((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_KEY)
+	ff_reduce_index(s, st->index),	// XXX:
         av_add_index_entry(st, pos, dts, size, 0, AVINDEX_KEYFRAME);
     break;
  }
 
     // if not streamed and no duration from metadata then seek to end to find the duration from the timestamps
-    if(s->pb->seekable && (!s->duration || s->duration==AV_NOPTS_VALUE)){
+    if(!dup && s->pb->seekable && (!s->duration || s->duration==AV_NOPTS_VALUE)){
         int size;
         const int64_t pos= avio_tell(s->pb);
         const int64_t fsize= avio_size(s->pb);
@@ -505,6 +511,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
             s->duration = ts * (int64_t)AV_TIME_BASE / 1000;
         }
         avio_seek(s->pb, pos, SEEK_SET);
+	dup = 1;	// XXX: mhfan
     }
 
     if(stream_type == FLV_STREAM_TYPE_AUDIO){
@@ -590,7 +597,7 @@ static int flv_read_seek(AVFormatContext *s, int stream_index,
     return avio_seek_time(s->pb, stream_index, ts, flags);
 }
 
-#if 0 /* don't know enough to implement this */
+#if 1 /* don't know enough to implement this */
 static int flv_read_seek2(AVFormatContext *s, int stream_index,
     int64_t min_ts, int64_t ts, int64_t max_ts, int flags)
 {
@@ -599,6 +606,9 @@ static int flv_read_seek2(AVFormatContext *s, int stream_index,
     if (ts - min_ts > (uint64_t)(max_ts - ts)) flags |= AVSEEK_FLAG_BACKWARD;
 
     if (!s->pb->seekable) {
+	extern int seek_frame_generic(AVFormatContext *s,
+		int stream_index, int64_t ts, int flags);
+
         if (stream_index < 0) {
             stream_index = av_find_default_stream_index(s);
             if (stream_index < 0)
@@ -608,6 +618,57 @@ static int flv_read_seek2(AVFormatContext *s, int stream_index,
             ts = av_rescale_rnd(ts, 1000, AV_TIME_BASE,
                 flags & AVSEEK_FLAG_BACKWARD ? AV_ROUND_DOWN : AV_ROUND_UP);
         }
+
+      if (!s->pb->read_seek && seek_frame_generic(s,
+	    stream_index, ts, flags) < 0) {  // XXX:
+	// seeking support, refer to: xine-lib/src/demuxers/demux_flv.c
+	AVStream *st = s->streams[stream_index];
+	int  size;	short hasv = 0, rewind = -1;
+#ifdef	CONFIG_HHTECH_MINIPMP
+	int  seek_percent = 0, tmp;	// XXX:
+#endif
+	for (size = 0; size < s->nb_streams; ++size)
+	    if (s->streams[size]->codec->codec_type ==
+		    AVMEDIA_TYPE_VIDEO) { hasv = 1; break; }
+
+	for (size = 0; ; ) {
+	    int plen, cpts;
+	    short type, flag;
+	    avio_seek(s->pb, size, SEEK_CUR);
+
+	    plen = avio_rb32(s->pb);	type = avio_r8(s->pb);
+	    size = avio_rb24(s->pb);	cpts = avio_rb24(s->pb);
+	    flag = avio_r8(s->pb);	cpts|= (flag << 24);	// XXX:
+	    avio_skip(s->pb, 3);	flag = avio_r8(s->pb);
+	    flag = hasv && (type != FLV_TAG_TYPE_VIDEO ||
+		    !(flag & FLV_FRAME_KEY));
+
+	    if (rewind < 0) {	// XXX: assume flags == AVSEEK_FLAG_ANY
+		if (cpts - 500 < ts && ts < cpts + 500)
+		    return 0; else  rewind = (ts < cpts);
+		if (rewind) ts += 500; else ts -= 500;
+	    }
+	    if (rewind) {
+		if (!plen) break;	else size = -plen - 16 - 4;
+		if (flag) continue; else if (cpts < ts) break;
+	    } else {
+		if (s->pb->eof_reached) return -1;  else --size;
+		if (flag) continue; else	// XXX:
+		    ff_reduce_index(s, st->index),
+		    av_add_index_entry(st, avio_tell(s->pb) - 16,
+			    cpts, size, 0, AVINDEX_KEYFRAME);
+		    if (ts < cpts) break;
+	    }
+
+#ifdef	CONFIG_HHTECH_MINIPMP
+	    if (0 < ts && (seek_percent + 1) <
+		    (tmp = ((cpts * 100) / ts)))
+		fprintf(stdout, "ANS_SEEKED=%d\n", (seek_percent = tmp));
+#endif
+	}	avio_seek(s->pb, -16, SEEK_CUR);
+	av_update_cur_dts(s, st, ts);	ret = 0;
+      } else
+
         ret = avio_seek_time(s->pb, stream_index, ts, flags);
     }
 
@@ -625,7 +686,7 @@ AVInputFormat ff_flv_demuxer = {
     .read_header    = flv_read_header,
     .read_packet    = flv_read_packet,
     .read_seek = flv_read_seek,
-#if 0
+#if 1
     .read_seek2 = flv_read_seek2,
 #endif
     .extensions = "flv",

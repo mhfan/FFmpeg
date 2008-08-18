@@ -1527,7 +1527,11 @@ int ff_index_search_timestamp(const AVIndexEntry *entries, int nb_entries,
         if(timestamp <= wanted_timestamp)
             a = m;
     }
+#if 0
     m= (flags & AVSEEK_FLAG_BACKWARD) ? a : b;
+#else // XXX: by jetta
+    m= (flags & AVSEEK_FLAG_BACKWARD) ? (a < 0 ? 0 : a) : b;
+#endif
 
     if(!(flags & AVSEEK_FLAG_ANY)){
         while(m>=0 && m<nb_entries && !(entries[m].flags & AVINDEX_KEYFRAME)){
@@ -1738,7 +1742,10 @@ static int seek_frame_byte(AVFormatContext *s, int stream_index, int64_t pos, in
     return 0;
 }
 
-static int seek_frame_generic(AVFormatContext *s,
+int seek_frame_generic(AVFormatContext *s,
+	int stream_index, int64_t timestamp, int flags);
+
+/*static */int seek_frame_generic(AVFormatContext *s,
                                  int stream_index, int64_t timestamp, int flags)
 {
     int index;
@@ -1791,7 +1798,7 @@ static int seek_frame_generic(AVFormatContext *s,
 
     ff_read_frame_flush(s);
     AV_NOWARN_DEPRECATED(
-    if (s->iformat->read_seek){
+    if (0 && s->iformat->read_seek){	// XXX: avoid duplicated function call
         if(s->iformat->read_seek(s, stream_index, timestamp, flags) >= 0)
             return 0;
     }
@@ -2408,6 +2415,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
 
         /* NOTE: a new stream can be added there if no header in file
            (AVFMTCTX_NOHEADER) */
+       // for some FLV which audio stream is before video stream.
+   if ((ret = read_frame_internal(ic, &pkt1)) < 0)	// XXX: mhfan
         ret = read_frame_internal(ic, &pkt1);
         if (ret == AVERROR(EAGAIN))
             continue;
@@ -3038,6 +3047,7 @@ int avformat_write_header(AVFormatContext *s, AVDictionary **options)
                 goto fail;
             }
             break;
+	default: ;
         }
 
         if(s->oformat->codec_tag){
