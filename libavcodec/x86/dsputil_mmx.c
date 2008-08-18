@@ -2560,7 +2560,7 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
                 }
                 c->idct_permutation_type= FF_LIBMPEG2_IDCT_PERM;
 #endif
-            }else if((CONFIG_VP3_DECODER || CONFIG_VP5_DECODER || CONFIG_VP6_DECODER) &&
+            }else if((CONFIG_VP3_DECODER || CONFIG_VP5_DECODER || CONFIG_VP6_DECODER || CONFIG_VP6F_DECODER || CONFIG_THEORA_DECODER) &&	// mhfan
                      idct_algo==FF_IDCT_VP3){
                 if(mm_flags & FF_MM_SSE2){
                     c->idct_put= ff_vp3_idct_put_sse2;
@@ -2916,7 +2916,7 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         }
 #endif
 
-#if CONFIG_SNOW_DECODER
+#if CONFIG_SNOW_DECODER && (defined(ARCH_X86_64) || !defined(PIC))
         if(mm_flags & FF_MM_SSE2 & 0){
             c->horizontal_compose97i = ff_snow_horizontal_compose97i_sse2;
 #if HAVE_7REGS

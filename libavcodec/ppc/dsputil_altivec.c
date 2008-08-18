@@ -1331,6 +1331,58 @@ POWERPC_PERF_STOP_COUNT(altivec_hadamard8_diff16_num, 1);
     return score;
 }
 
+#if 0 	/* comment by mhfan */
+static int has_altivec_inner(void)
+{
+#ifdef __AMIGAOS4__
+    ULONG result = 0;
+    extern struct ExecIFace *IExec;
+
+    IExec->GetCPUInfoTags(GCIT_VectorUnit, &result, TAG_DONE);
+    if (result == VECTORTYPE_ALTIVEC) return 1;
+    return 0;
+#elif __APPLE__
+    int sels[2] = {CTL_HW, HW_VECTORUNIT};
+    int has_vu = 0;
+    size_t len = sizeof(has_vu);
+    int err;
+
+    err = sysctl(sels, 2, &has_vu, &len, NULL, 0);
+
+    if (err == 0) return (has_vu != 0);
+    return 0;
+#else
+/* Do it the brute-force way, borrowed from the libmpeg2 library. */
+    {
+      signal (SIGILL, sigill_handler);
+      if (sigsetjmp (jmpbuf, 1)) {
+        signal (SIGILL, SIG_DFL);
+      } else {
+        canjump = 1;
+
+        asm volatile ("mtspr 256, %0\n\t"
+                      "vand %%v0, %%v0, %%v0"
+                      :
+                      : "r" (-1));
+
+        signal (SIGILL, SIG_DFL);
+        return 1;
+      }
+    }
+    return 0;
+#endif /* __AMIGAOS4__ */
+}
+
+int has_altivec(void)
+{
+    static int has_it = -1;
+    if (has_it < 0) {
+        has_it = has_altivec_inner();
+    }
+    return has_it;
+}
+#endif	/* comment by mhfan */
+
 static void vorbis_inverse_coupling_altivec(float *mag, float *ang,
                                             int blocksize)
 {

@@ -23,6 +23,7 @@
 #include "libavcodec/avcodec.h"
 #include "libavcodec/snow.h"
 
+#if defined(ARCH_X86_64) || !defined(PIC)
 void ff_snow_horizontal_compose97i_sse2(IDWTELEM *b, int width){
     const int w2= (width+1)>>1;
     DECLARE_ALIGNED_16(IDWTELEM, temp)[width>>1];
@@ -869,3 +870,4 @@ void ff_snow_inner_add_yblock_mmx(const uint8_t *obmc, const int obmc_stride, ui
     else
         ff_snow_inner_add_yblock(obmc, obmc_stride, block, b_w, b_h, src_x,src_y, src_stride, sb, add, dst8);
 }
+#endif
