@@ -77,8 +77,7 @@ av_cold void ff_init_ff_cos_tabs(int index)
 
 av_cold int ff_fft_init(FFTContext *s, int nbits, int inverse)
 {
-    int i, j, m, n;
-    float alpha, c1, s1, s2;
+    int i, j, m, n, s2;
     int av_unused has_vectors;
 
     if (nbits < 2 || nbits > 16)
@@ -95,7 +94,7 @@ av_cold int ff_fft_init(FFTContext *s, int nbits, int inverse)
         goto fail;
     s->inverse = inverse;
 
-    s2 = inverse ? 1.0 : -1.0;
+    s2 = inverse ? 1 : -1;
 
     s->fft_permute = ff_fft_permute_c;
     s->fft_calc    = ff_fft_calc_c;
@@ -121,9 +120,23 @@ av_cold int ff_fft_init(FFTContext *s, int nbits, int inverse)
         FFTComplex *q;
 
         for(i=0; i<(n/2); i++) {
-            alpha = 2 * M_PI * (float)i / (float)n;
-            c1 = cos(alpha);
+
+#ifdef CONFIG_FIXED_POINT
+	    fixed32 c1, s1;
+
+	    fixed32 ifix = itofix32(i);
+	    fixed32 nfix = itofix32(n);
+	    fixed32  res = fixdiv32(ifix, nfix);
+
+	    s1 = fsincos(res << PRECISION, &c1) * s2;
+#else// XXX: mhfan
+	    float alpha, c1, s1;
+
+	    alpha = 2 * M_PI * (float)i / (float)n;
+	    c1 = cos(alpha);
             s1 = sin(alpha) * s2;
+#endif//CONFIG_FIXED_POINT
+
             s->exptab[i].re = c1;
             s->exptab[i].im = s1;
         }
