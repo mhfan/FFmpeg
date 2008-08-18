@@ -471,6 +471,7 @@ enum AVStreamParseType {
 };
 
 typedef struct AVIndexEntry {
+#ifndef CONFIG_NO_LFS
     int64_t pos;
     int64_t timestamp;        /**<
                                * Timestamp in AVStream.time_base units, preferably the time from which on correctly decoded frames are available
@@ -478,6 +479,11 @@ typedef struct AVIndexEntry {
                                * But demuxers can choose to store a different timestamp, if it is more convenient for the implementation or nothing better
                                * is known
                                */
+#else// XXX: mhfan; off_t?
+    // TODO: discard min_distance used in utils.c/binary_search
+    int32_t pos;
+    int32_t timestamp;
+#endif//CONFIG_NO_LFS
 #define AVINDEX_KEYFRAME 0x0001
     int flags:2;
     int size:30; //Yeah, trying to keep the size of this small to reduce memory requirements (it is 24 vs. 32 bytes due to possible 8-byte alignment).

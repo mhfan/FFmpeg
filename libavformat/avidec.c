@@ -30,7 +30,7 @@
 #include "dv.h"
 #include "riff.h"
 
-#undef NDEBUG
+//#undef NDEBUG
 #include <assert.h>
 
 typedef struct AVIStream {
@@ -185,8 +185,10 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             return -1;
     }
 
-    for(i=0; i<entries_in_use; i++){
-        if(index_type){
+    // TODO: allocate once and do limit
+
+    if(index_type)
+	for(i=0; i<entries_in_use; i++){
             int64_t pos= avio_rl32(pb) + base - 8;
             int len    = avio_rl32(pb);
             int key= len >= 0;
@@ -201,11 +203,14 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             if(last_pos == pos || pos == base - 8)
                 avi->non_interleaved= 1;
             if(last_pos != pos && (len || !ast->sample_size))
+	    if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO && !key) ; else
+		ff_reduce_index(s, st->index),	// XXX: mhfan
                 av_add_index_entry(st, pos, ast->cum_len, len, 0, key ? AVINDEX_KEYFRAME : 0);
 
             ast->cum_len += get_duration(ast, len);
             last_pos= pos;
-        }else{
+    } else // XXX: mhfan
+	for(i=0; i<entries_in_use; i++){
             int64_t offset, pos;
             int duration;
             offset = avio_rl64(pb);
@@ -235,7 +240,6 @@ static int read_braindead_odml_indx(AVFormatContext *s, int frame_num){
             }
 
         }
-    }
     avi->index_loaded=2;
     return 0;
 }
@@ -260,7 +264,10 @@ static void clean_index(AVFormatContext *s){
         size= st->index_entries[0].size;
         ts= st->index_entries[0].timestamp;
 
+	// TODO: allocate once and do limit, mhfan
+
         for(j=0; j<size; j+=max){
+	    ff_reduce_index(s, st->index),	// XXX: mhfan
             av_add_index_entry(st, pos+j, ts+j, FFMIN(max, size-j), 0, AVINDEX_KEYFRAME);
         }
     }
@@ -553,6 +560,8 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                 break;
             case MKTAG('a', 'u', 'd', 's'):
                 codec_type = AVMEDIA_TYPE_AUDIO;
+		if (!ast->sample_size && ast->scale == 1)
+		     ast->sample_size = 1;	// XXX: mhfan
                 break;
             case MKTAG('t', 'x', 't', 's'):
                 codec_type = AVMEDIA_TYPE_SUBTITLE;
@@ -992,6 +1001,7 @@ start_sync:
                 if(size || !ast->sample_size){
                     uint64_t pos= avio_tell(pb) - 8;
                     if(!st->index_entries || !st->nb_index_entries || st->index_entries[st->nb_index_entries - 1].pos < pos){
+			ff_reduce_index(s, st->index),	// XXX: mhfan
                         av_add_index_entry(st, pos, ast->frame_offset, size, 0, AVINDEX_KEYFRAME);
                     }
                 }
@@ -1224,6 +1234,7 @@ static int avi_read_idx1(AVFormatContext *s, int size)
     avi->stream_index = -1;
     avio_seek(pb, idx1_pos, SEEK_SET);
 
+    // TODO: allocate once and do limit, mhfan
     /* Read the entries and sort them in each stream component. */
     for(i = 0; i < nb_index_entries; i++) {
         tag = avio_rl32(pb);
@@ -1254,6 +1265,9 @@ static int avi_read_idx1(AVFormatContext *s, int size)
         if(last_pos == pos)
             avi->non_interleaved= 1;
         else if(len || !ast->sample_size)
+	    if (st->codec->codec_type == AVMEDIA_TYPE_VIDEO &&
+		    !(flags & AVIIF_INDEX)) ; else
+		ff_reduce_index(s, st->index),	// XXX: mhfan
             av_add_index_entry(st, pos, ast->cum_len, len, 0, (flags&AVIIF_INDEX) ? AVINDEX_KEYFRAME : 0);
         ast->cum_len += get_duration(ast, len);
         last_pos= pos;
