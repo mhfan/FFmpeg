@@ -310,6 +310,7 @@ typedef struct DSPContext {
     qpel_mc_func avg_no_rnd_qpel_pixels_tab[2][16];
     qpel_mc_func put_mspel_pixels_tab[8];
 
+#if 1 	/* comment by mhfan */
     /**
      * h264 Chroma MC
      */
@@ -327,7 +328,9 @@ typedef struct DSPContext {
 
     h264_weight_func weight_h264_pixels_tab[10];
     h264_biweight_func biweight_h264_pixels_tab[10];
+#endif	/* comment by mhfan */
 
+#if 1 	/* comment by mhfan */
     /* AVS specific */
     qpel_mc_func put_cavs_qpel_pixels_tab[2][16];
     qpel_mc_func avg_cavs_qpel_pixels_tab[2][16];
@@ -336,9 +339,11 @@ typedef struct DSPContext {
     void (*cavs_filter_cv)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
     void (*cavs_filter_ch)(uint8_t *pix, int stride, int alpha, int beta, int tc, int bs1, int bs2);
     void (*cavs_idct8_add)(uint8_t *dst, DCTELEM *block, int stride);
+#endif	/* comment by mhfan */
 
     me_cmp_func pix_abs[2][4];
 
+#if 1 	/* comment by mhfan */
     /* huffyuv specific */
     void (*add_bytes)(uint8_t *dst/*align 16*/, uint8_t *src/*align 16*/, int w);
     void (*add_bytes_l2)(uint8_t *dst/*align 16*/, uint8_t *src1/*align 16*/, uint8_t *src2/*align 16*/, int w);
@@ -354,7 +359,9 @@ typedef struct DSPContext {
     /* this might write to dst[w] */
     void (*add_png_paeth_prediction)(uint8_t *dst, uint8_t *src, uint8_t *top, int w, int bpp);
     void (*bswap_buf)(uint32_t *dst, const uint32_t *src, int w);
+#endif	/* comment by mhfan */
 
+#if 1 	/* comment by mhfan */
     void (*h264_v_loop_filter_luma)(uint8_t *pix/*align 16*/, int stride, int alpha, int beta, int8_t *tc0);
     void (*h264_h_loop_filter_luma)(uint8_t *pix/*align 4 */, int stride, int alpha, int beta, int8_t *tc0);
     /* v/h_loop_filter_luma_intra: align 16 */
@@ -367,14 +374,17 @@ typedef struct DSPContext {
     // h264_loop_filter_strength: simd only. the C version is inlined in h264.c
     void (*h264_loop_filter_strength)(int16_t bS[2][4][4], uint8_t nnz[40], int8_t ref[2][40], int16_t mv[2][40][2],
                                       int bidir, int edges, int step, int mask_mv0, int mask_mv1, int field);
+#endif	/* comment by mhfan */
 
     void (*h263_v_loop_filter)(uint8_t *src, int stride, int qscale);
     void (*h263_h_loop_filter)(uint8_t *src, int stride, int qscale);
 
     void (*h261_loop_filter)(uint8_t *src, int stride);
 
+#if CONFIG_VC1_DECODER || CONFIG_WMV2_DECODER || CONFIG_WMV2_ENCODER
     void (*x8_v_loop_filter)(uint8_t *src, int stride, int qscale);
     void (*x8_h_loop_filter)(uint8_t *src, int stride, int qscale);
+#endif  /* XXX:    by mhfan */
 
     void (*vp3_v_loop_filter)(uint8_t *src, int stride, int *bounding_values);
     void (*vp3_h_loop_filter)(uint8_t *src, int stride, int *bounding_values);
@@ -502,6 +512,7 @@ typedef struct DSPContext {
     void (*draw_edges)(uint8_t *buf, int wrap, int width, int height, int w);
 #define EDGE_WIDTH 16
 
+#if 1 	/* comment by mhfan */
     /* h264 functions */
     /* NOTE!!! if you implement any of h264_idct8_add, h264_idct8_add4 then you must implement all of them
        NOTE!!! if you implement any of h264_idct_add, h264_idct_add16, h264_idct_add16intra, h264_idct_add8 then you must implement all of them
@@ -516,11 +527,14 @@ typedef struct DSPContext {
     void (*h264_idct8_add4)(uint8_t *dst/*align 16*/, const int *blockoffset, DCTELEM *block/*align 16*/, int stride, const uint8_t nnzc[6*8]);
     void (*h264_idct_add8)(uint8_t **dst/*align 16*/, const int *blockoffset, DCTELEM *block/*align 16*/, int stride, const uint8_t nnzc[6*8]);
     void (*h264_idct_add16intra)(uint8_t *dst/*align 16*/, const int *blockoffset, DCTELEM *block/*align 16*/, int stride, const uint8_t nnzc[6*8]);
+#endif	/* comment by mhfan */
 
+#if 1 	/* comment by mhfan */
     /* snow wavelet */
     void (*vertical_compose97i)(IDWTELEM *b0, IDWTELEM *b1, IDWTELEM *b2, IDWTELEM *b3, IDWTELEM *b4, IDWTELEM *b5, int width);
     void (*horizontal_compose97i)(IDWTELEM *b, int width);
     void (*inner_add_yblock)(const uint8_t *obmc, const int obmc_stride, uint8_t * * block, int b_w, int b_h, int src_x, int src_y, int src_stride, slice_buffer * sb, int add, uint8_t * dst8);
+#endif	/* comment by mhfan */
 
     void (*prefetch)(void *mem, int stride, int h);
 
@@ -532,6 +546,7 @@ typedef struct DSPContext {
                                unsigned int filter_shift, int32_t mask, int blocksize,
                                int32_t *sample_buffer);
 
+#if 1 	/* comment by mhfan */
     /* vc1 functions */
     void (*vc1_inv_trans_8x8)(DCTELEM *b);
     void (*vc1_inv_trans_8x4)(uint8_t *dest, int line_size, DCTELEM *block);
@@ -554,11 +569,14 @@ typedef struct DSPContext {
      */
     op_pixels_func put_vc1_mspel_pixels_tab[16];
     op_pixels_func avg_vc1_mspel_pixels_tab[16];
+#endif	/* comment by mhfan */
 
+#if CONFIG_VC1_DECODER || CONFIG_WMV2_DECODER || CONFIG_WMV2_ENCODER
     /* intrax8 functions */
     void (*x8_spatial_compensation[12])(uint8_t *src , uint8_t *dst, int linesize);
     void (*x8_setup_spatial_compensation)(uint8_t *src, uint8_t *dst, int linesize,
            int * range, int * sum,  int edges);
+#endif  /* XXX:    by mhfan */
 
     /**
      * Calculate scalar product of two vectors.
