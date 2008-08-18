@@ -1,0 +1,20 @@
+
+rockbox/apps/codec/
+
+    libwma/
+	   types.h
+	   wmadec.h
+	   wmadata.h
+	   wmafixed.h
+	   wmafixed.c
+	   wmadeci.c
+
+    lib/
+        asm_arm.h
+        asm_mcf5249.h
+        codeclib_misc.h
+        mdct_lookup.h
+        mdct_arm.S
+        mdct2.h
+        mdct2.c
+

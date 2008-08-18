@@ -2854,6 +2854,7 @@ if enabled source_path_used; then
         doc
         libavcodec
         libavcodec/$arch
+        libavcodec/wmadeci
         libavdevice
         libavfilter
         libavformat

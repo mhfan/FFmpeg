@@ -28,6 +28,10 @@
 #include "get_bits.h"
 #include "dsputil.h"
 
+#if ARCH_BFIN
+#define llrint lrint
+#endif// XXX:
+
 /*
  * TODO:
  *  - in low precision mode, use more 16 bit multiplies in synth filter

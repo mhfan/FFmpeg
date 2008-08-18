@@ -336,6 +336,16 @@ OBJS-$(CONFIG_VP6_DECODER)             += vp6.o vp56.o vp56data.o \
 OBJS-$(CONFIG_VQA_DECODER)             += vqavideo.o
 OBJS-$(CONFIG_WAVPACK_DECODER)         += wavpack.o
 OBJS-$(CONFIG_WMAPRO_DECODER)          += wmaprodec.o wma.o
+
+SRC_PATH_BARE ?= $(if $(SUBDIR),,../lib$(NAME))
+
+WMADECI_OBJS := $(patsubst $(SRC_PATH_BARE)/$(SUBDIR)%.c,%.o, \
+		$(wildcard $(SRC_PATH_BARE)/$(SUBDIR)wmadeci/*.c)) \
+	$(if $(ARCH_ARM),wmadeci/mdct_arm.o,)
+
+OBJS-$(CONFIG_WMAV1I_DECODER)          += $(WMADECI_OBJS)
+OBJS-$(CONFIG_WMAV2I_DECODER)          += $(WMADECI_OBJS)
+
 OBJS-$(CONFIG_WMAV1_DECODER)           += wmadec.o wma.o
 OBJS-$(CONFIG_WMAV1_ENCODER)           += wmaenc.o wma.o
 OBJS-$(CONFIG_WMAV2_DECODER)           += wmadec.o wma.o
@@ -692,11 +702,13 @@ TESTPROGS-$(HAVE_MMX) += motion
 
 HOSTPROGS = costablegen
 
-DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86
+DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86 wmadeci
 
 CLEANFILES = sin_tables.c cos_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 
 include $(SUBDIR)../subdir.mak
+
+$(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 
