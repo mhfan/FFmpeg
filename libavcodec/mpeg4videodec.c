@@ -25,6 +25,10 @@
 #include "h263.h"
 #include "thread.h"
 
+#if ARCH_BFIN
+#include "bfin/mc_dma.h"
+#endif// XXX: mhfan
+
 // The defines below define the number of bits that are read at once for
 // reading vlc values. Changing these may improve speed and data cache needs
 // be aware though that decreasing them may need the number of stages that is
@@ -1441,6 +1445,10 @@ static int mpeg4_decode_mb(MpegEncContext *s,
         dquant = cbpc & 4;
         s->mb_intra = 1;
 intra:
+#ifdef BFIN_MDMA
+	if(s->codec_id==CODEC_ID_MPEG4 && s->pict_type == FF_P_TYPE)
+	    MPV_dma_mc_addidct();
+#endif
         s->ac_pred = get_bits1(&s->gb);
         if(s->ac_pred)
             s->current_picture.f.mb_type[xy] = MB_TYPE_INTRA | MB_TYPE_ACPRED;

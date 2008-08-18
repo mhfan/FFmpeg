@@ -392,7 +392,17 @@ static int init_duplicate_context(MpegEncContext *s, MpegEncContext *base){
             FF_ALLOCZ_OR_GOTO(s->avctx, s->dct_error_sum, 2 * 64 * sizeof(int), fail)
         }
     }
+
+#ifdef	CONFIG_BF533_IDCT_L1D	// Added by gph, 2007-07
+#define DCT_BUF_SIZE 64*8/*12*/*sizeof(DCTELEM)
+    // 1024 bytes; OK FOR MPEG4, TO BE CHECKED FOR OTHERS
+    // use former empty l1d sram subbank B3. +10 to avoid backward access
+    s->blocks = (void*)(0xFF903010);
+    memset(s->blocks, 0, DCT_BUF_SIZE);
+#else// XXX:
     FF_ALLOCZ_OR_GOTO(s->avctx, s->blocks, 64*12*2 * sizeof(DCTELEM), fail)
+#endif//CONFIG_BF533_IDCT_L1D
+
     s->block= s->blocks[0];
 
     for(i=0;i<12;i++){
@@ -425,7 +435,9 @@ static void free_duplicate_context(MpegEncContext *s){
     av_freep(&s->dct_error_sum);
     av_freep(&s->me.map);
     av_freep(&s->me.score_map);
+#ifndef	CONFIG_BF533_IDCT_L1D
     av_freep(&s->blocks);
+#endif
     av_freep(&s->ac_val_base);
     s->block= NULL;
 }
@@ -1976,8 +1988,11 @@ unhandled:
     return s->mb_height-1;
 }
 
+inline void put_dct(MpegEncContext *s, DCTELEM *block, int i,
+	uint8_t *dest, int line_size, int qscale);
+
 /* put block[] to dest[] */
-static inline void put_dct(MpegEncContext *s,
+/*static */inline void put_dct(MpegEncContext *s,
                            DCTELEM *block, int i, uint8_t *dest, int line_size, int qscale)
 {
     s->dct_unquantize_intra(s, block, i, qscale);
