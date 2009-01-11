@@ -462,6 +462,15 @@ void avcodec_register_all(void)
     REGISTER_DECODER(WEBVTT,            webvtt);
     REGISTER_ENCDEC (XSUB,              xsub);
 
+#if 0
+    REGISTER_DECODER(LIBA52, liba52);
+    REGISTER_DECODER(LIBASS, libass);
+    REGISTER_DECODER(LIBDCA, libdca);
+    REGISTER_DECODER(LIBGIF, libgif);
+    REGISTER_DECODER(LIBMAD, libmad);
+    REGISTER_DECODER(LIBVORBISIDEC, libvorbisidec);
+#endif// TODO: mhfan
+
     /* external libraries */
     REGISTER_DECODER(LIBCELT,           libcelt);
     REGISTER_ENCODER(LIBFAAC,           libfaac);

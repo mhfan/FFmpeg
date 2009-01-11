@@ -184,6 +184,7 @@ Individual component options:
 External library support:
   --enable-avisynth        enable reading of AVISynth script files [no]
   --enable-bzlib           enable bzlib [autodetect]
+  --enable-crystalhd       enable Crystal HD Video Decoder
   --enable-fontconfig      enable fontconfig
   --enable-frei0r          enable frei0r video filtering
   --enable-gnutls          enable gnutls [no]
@@ -795,7 +796,7 @@ check_ld(){
     check_$type $($cflags_filter $flags) || return
     flags=$($ldflags_filter $flags)
     libs=$($ldflags_filter $libs)
-    check_cmd $ld $LDFLAGS $flags $(ld_o $TMPE) $TMPO $libs $extralibs
+    check_cmd $ld $LDFLAGS $flags $(ld_o $TMPE) $TMPO $libs $extralibs	# XXX:
 }
 
 check_code(){
@@ -2202,8 +2203,7 @@ die_unknown(){
 	;;
     esac
     echo "Unknown option \"$1\"."
-    echo "See $0 --help for available options."
-    exit 1
+    #echo "See $0 --help for available options.";	exit 1	# mhfan
 }
 
 show_list() {

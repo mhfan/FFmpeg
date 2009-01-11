@@ -167,5 +167,6 @@
     PIX_FMT_GBRP14BE,    ///< planar GBR 4:4:4 42bpp, big endian
     PIX_FMT_GBRP14LE,    ///< planar GBR 4:4:4 42bpp, little endian
 
+    PIX_FMT_IUYV,	// mhfan, XXX: PIX_FMT_UYVY422?
     PIX_FMT_NB,        ///< number of pixel formats, DO NOT USE THIS if you want to link with shared libav* because the number of formats might differ between versions
 #endif /* AVUTIL_OLD_PIX_FMTS_H */

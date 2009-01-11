@@ -206,7 +206,9 @@ static av_cold int init_cook_vlc_tables(COOKContext *q)
                                (1 << q->subpacket[i].js_vlc_bits) - 1,
                                ccpl_huffbits[q->subpacket[i].js_vlc_bits - 2], 1, 1,
                                ccpl_huffcodes[q->subpacket[i].js_vlc_bits - 2], 2, 2, 0);
+#ifdef COOKDEBUG
             av_log(q->avctx, AV_LOG_DEBUG, "subpacket %i Joint-stereo VLC used.\n", i);
+#endif
         }
     }
 
@@ -317,7 +319,7 @@ static av_cold int cook_decode_close(AVCodecContext *avctx)
     for (i = 0; i < q->num_subpackets; i++)
         ff_free_vlc(&q->subpacket[i].channel_coupling);
 
-    av_log(avctx, AV_LOG_DEBUG, "Memory deallocated.\n");
+    //av_log(avctx, AV_LOG_DEBUG, "Memory deallocated.\n");
 
     return 0;
 }
@@ -995,17 +997,21 @@ static int cook_decode_frame(AVCodecContext *avctx, void *data,
         q->subpacket[i].bits_per_subpacket = (q->subpacket[i].size * 8) >>
                                               q->subpacket[i].bits_per_subpdiv;
         q->subpacket[i].ch_idx = chidx;
+#ifdef COOKDEBUG
         av_log(avctx, AV_LOG_DEBUG,
                "subpacket[%i] size %i js %i %i block_align %i\n",
                i, q->subpacket[i].size, q->subpacket[i].joint_stereo, offset,
                avctx->block_align);
+#endif
 
         if ((ret = decode_subpacket(q, &q->subpacket[i], buf + offset, samples)) < 0)
             return ret;
         offset += q->subpacket[i].size;
         chidx += q->subpacket[i].num_channels;
+#ifdef COOKDEBUG
         av_log(avctx, AV_LOG_DEBUG, "subpacket[%i] %i %i\n",
                i, q->subpacket[i].size * 8, get_bits_count(&q->gb));
+#endif
     }
 
     /* Discard the first two frames: no valid audio. */

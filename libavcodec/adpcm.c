@@ -108,6 +108,7 @@ static av_cold int adpcm_decode_init(AVCodecContext * avctx)
     case AV_CODEC_ID_ADPCM_THP:
         max_channels = 6;
         break;
+    default: ;
     }
     if (avctx->channels < min_channels || avctx->channels > max_channels) {
         av_log(avctx, AV_LOG_ERROR, "Invalid number of channels\n");

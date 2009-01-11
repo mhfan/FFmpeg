@@ -857,7 +857,9 @@ void ff_dwt_init(DWTContext *c)
 {
     c->vertical_compose97i   = ff_snow_vertical_compose97i;
     c->horizontal_compose97i = ff_snow_horizontal_compose97i;
+#if CONFIG_SNOW_DECODER || CONFIG_SNOW_ENCODER
     c->inner_add_yblock      = ff_snow_inner_add_yblock;
+#endif
 
     if (HAVE_MMX)
         ff_dwt_init_x86(c);

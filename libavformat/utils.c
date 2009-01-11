@@ -1743,7 +1743,7 @@ int ff_index_search_timestamp(const AVIndexEntry *entries, int nb_entries,
         if(timestamp <= wanted_timestamp)
             a = m;
     }
-    m= (flags & AVSEEK_FLAG_BACKWARD) ? a : b;
+    m= (flags & AVSEEK_FLAG_BACKWARD) ? (a < 0 ? 0 : a) : b; // XXX: by jetta
 
     if(!(flags & AVSEEK_FLAG_ANY)){
         while(m>=0 && m<nb_entries && !(entries[m].flags & AVINDEX_KEYFRAME)){
@@ -2020,7 +2020,7 @@ static int seek_frame_generic(AVFormatContext *s,
         return -1;
 
     ff_read_frame_flush(s);
-    if (s->iformat->read_seek){
+    if (s->iformat->read_seek){	// XXX: avoid duplicated function call?
         if(s->iformat->read_seek(s, stream_index, timestamp, flags) >= 0)
             return 0;
     }
@@ -2435,6 +2435,7 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
 	    ic->duration = av_rescale_q(last_pts,
 		    ic->streams[i]->time_base, AV_TIME_BASE_Q);
 
+	    //if (1) av_seek_frame(ic, 0, 0, 0); else
 	    for (i = 0; i < ic->nb_streams; ++i) av_seek_frame(ic, i, 0, 0);
 	} else {
 	    ic->duration_estimation_method = AVFMT_DURATION_FROM_BITRATE;
@@ -2845,6 +2846,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
 
         /* NOTE: a new stream can be added there if no header in file
            (AVFMTCTX_NOHEADER) */
+       // for some FLV which audio stream is before video stream?
+   //if ((ret = read_frame_internal(ic, &pkt1)) < 0)	// XXX: mhfan
         ret = read_frame_internal(ic, &pkt1);
         if (ret == AVERROR(EAGAIN))
             continue;
@@ -3115,6 +3118,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
     estimate_timings(ic, old_offset);
 
     compute_chapters_end(ic);
+
+    // TODO: external subtitles support
 
  find_stream_info_err:
     for (i=0; i < ic->nb_streams; i++) {

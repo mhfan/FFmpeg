@@ -112,6 +112,7 @@ static int file_check(URLContext *h, int mask)
 static int file_open(URLContext *h, const char *filename, int flags)
 {
     FileContext *c = h->priv_data;
+    char *final;
     int access;
     int fd;
     struct stat st;
@@ -132,6 +133,8 @@ static int file_open(URLContext *h, const char *filename, int flags)
 #ifdef O_BINARY
     access |= O_BINARY;
 #endif
+    if (0 < (fd = strtol(filename, &final, 10)) && !*final)
+	h->prot->url_close = NULL; else	// XXX:
     fd = open(filename, access, 0666);
     if (fd == -1)
         return AVERROR(errno);

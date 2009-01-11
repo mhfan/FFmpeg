@@ -2268,7 +2268,7 @@ static int dca_decode_frame(AVCodecContext *avctx, void *data,
                 return AVERROR_INVALIDDATA;
             }
 
-            if (avctx->request_channels == 2 && s->prim_channels > 2) {
+            if (avctx->channels == 2 && s->prim_channels > 2) {
                 channels = 2;
                 s->output = DCA_STEREO;
                 avctx->channel_layout = AV_CH_LAYOUT_STEREO;

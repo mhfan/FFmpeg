@@ -79,6 +79,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/* Workaround for some versions of libcrystalHD */
+#if !defined(_WIN32) && !defined(__APPLE__)
+#  define __LINUX_USER__
+#endif
+
 #include <libcrystalhd/bc_dts_types.h>
 #include <libcrystalhd/bc_dts_defs.h>
 #include <libcrystalhd/libcrystalhd_if.h>

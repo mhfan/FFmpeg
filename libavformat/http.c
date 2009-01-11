@@ -202,6 +202,7 @@ static int http_open_cnx(URLContext *h)
         memset(&s->auth_state, 0, sizeof(s->auth_state));
         attempts = 0;
         location_changed = 0;
+	av_log(h, AV_LOG_VERBOSE, "HTTP redirect: %s\n", s->location);
         goto redo;
     }
     return 0;
@@ -437,7 +438,7 @@ static int http_connect(URLContext *h, const char *path, const char *local_path,
     // Note: we send this on purpose even when s->off is 0 when we're probing,
     // since it allows us to detect more reliably if a (non-conforming)
     // server supports seeking by analysing the reply headers.
-    if (!has_header(s->headers, "\r\nRange: ") && !post && (s->off > 0 || s->seekable == -1))
+    if (!post && (s->off > 0 || (s->seekable == -1 && !strchr(path, '?'))) && !has_header(s->headers, "\r\nRange: "))
         len += av_strlcatf(headers + len, sizeof(headers) - len,
                            "Range: bytes=%"PRId64"-\r\n", s->off);
 
@@ -478,6 +479,8 @@ static int http_connect(URLContext *h, const char *path, const char *local_path,
              headers,
              authstr ? authstr : "",
              proxyauthstr ? "Proxy-" : "", proxyauthstr ? proxyauthstr : "");
+
+    av_log(h, AV_LOG_DEBUG, "HTTP requests:\n%s\n", s->buffer);
 
     av_freep(&authstr);
     av_freep(&proxyauthstr);

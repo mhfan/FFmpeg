@@ -24,6 +24,7 @@
 const CodecTags ff_mkv_codec_tags[]={
     {"A_AAC"            , AV_CODEC_ID_AAC},
     {"A_AC3"            , AV_CODEC_ID_AC3},
+    {"A_AMR/NB"         , AV_CODEC_ID_AMR_NB},	// XXX: mhfan
     {"A_ALAC"           , AV_CODEC_ID_ALAC},
     {"A_DTS"            , AV_CODEC_ID_DTS},
     {"A_EAC3"           , AV_CODEC_ID_EAC3},
@@ -60,6 +61,7 @@ const CodecTags ff_mkv_codec_tags[]={
     {"S_TEXT/ASS"       , AV_CODEC_ID_SSA},
     {"S_TEXT/SSA"       , AV_CODEC_ID_SSA},
     {"S_ASS"            , AV_CODEC_ID_SSA},
+    //{"S_KATE"           , AV_CODEC_ID_KATE},
     {"S_SSA"            , AV_CODEC_ID_SSA},
     {"S_VOBSUB"         , AV_CODEC_ID_DVD_SUBTITLE},
     {"S_DVBSUB"         , AV_CODEC_ID_DVB_SUBTITLE},

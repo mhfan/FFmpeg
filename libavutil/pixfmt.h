@@ -230,6 +230,7 @@ enum AVPixelFormat {
     AV_PIX_FMT_GBRP14BE,    ///< planar GBR 4:4:4 42bpp, big-endian
     AV_PIX_FMT_GBRP14LE,    ///< planar GBR 4:4:4 42bpp, little-endian
 
+    AV_PIX_FMT_IUYV,	// mhfan, XXX: PIX_FMT_UYVY422?
     AV_PIX_FMT_NB,        ///< number of pixel formats, DO NOT USE THIS if you want to link with shared libav* because the number of formats might differ between versions
 
 #if FF_API_PIX_FMT

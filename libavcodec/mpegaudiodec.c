@@ -34,6 +34,10 @@
 #include "mpegaudiodsp.h"
 #include "dsputil.h"
 
+#if 0 //ARCH_BFIN
+#define llrint lrint
+#endif// XXX:
+
 /*
  * TODO:
  *  - test lsf / mpeg25 extensively.

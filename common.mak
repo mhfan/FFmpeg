@@ -25,6 +25,7 @@ ALLFFLIBS = avcodec avdevice avfilter avformat avresample avutil postproc swscal
 
 # NASM requires -I path terminated with /
 IFLAGS     := -I. -I$(SRC_PATH)/
+#IFLAGS   += $(addprefix -I$(SRC_PATH)/lib,$(ALLFFLIBS)) 	# XXX: mhfan
 CPPFLAGS   := $(IFLAGS) $(CPPFLAGS)
 CFLAGS     += $(ECFLAGS)
 CCFLAGS     = $(CPPFLAGS) $(CFLAGS)
@@ -43,6 +44,8 @@ endef
 COMPILE_C = $(call COMPILE,CC)
 COMPILE_CXX = $(call COMPILE,CXX)
 COMPILE_S = $(call COMPILE,AS)
+
+%:: %_shipped; cat $< > $@
 
 %.o: %.c
 	$(COMPILE_C)

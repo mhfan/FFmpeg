@@ -188,6 +188,7 @@ enum AVCodecID {
     AV_CODEC_ID_FLASHSV,
     AV_CODEC_ID_CAVS,
     AV_CODEC_ID_JPEG2000,
+    AV_CODEC_ID_JPEG2K = AV_CODEC_ID_JPEG2000, // XXX:
     AV_CODEC_ID_VMNC,
     AV_CODEC_ID_VP5,
     AV_CODEC_ID_VP6,
@@ -3467,10 +3468,10 @@ typedef struct AVSubtitleRect {
 
 typedef struct AVSubtitle {
     uint16_t format; /* 0 = graphics */
+    uint16_t num_rects;
+    AVSubtitleRect **rects;
     uint32_t start_display_time; /* relative to packet pts, in ms */
     uint32_t end_display_time; /* relative to packet pts, in ms */
-    unsigned num_rects;
-    AVSubtitleRect **rects;
     int64_t pts;    ///< Same as packet pts, in AV_TIME_BASE
 } AVSubtitle;
 

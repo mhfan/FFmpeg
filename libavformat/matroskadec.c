@@ -841,7 +841,8 @@ static int ebml_parse_id(MatroskaDemuxContext *matroska, EbmlSyntax *syntax,
     for (i=0; syntax[i].id; i++)
         if (id == syntax[i].id)
             break;
-    if (!syntax[i].id && id == MATROSKA_ID_CLUSTER &&
+    if (!syntax[i].id && (id == MATROSKA_ID_CLUSTER ||   //1 ||
+	 syntax[0].id == MATROSKA_ID_CLUSTERTIMECODE) && // XXX:
         matroska->num_levels > 0 &&
         matroska->levels[matroska->num_levels-1].length == 0xffffffffffffff)
         return 0;  // we reached the end of an unknown size cluster
@@ -1182,6 +1183,7 @@ static void matroska_fix_ass_packet(MatroskaDemuxContext *matroska,
                                     AVPacket *pkt, uint64_t display_duration)
 {
     char *line, *layer, *ptr = pkt->data, *end = ptr+pkt->size;
+    //pkt->duration = display_duration;	return;	    // XXX:
     for (; *ptr!=',' && ptr<end-1; ptr++);
     if (*ptr == ',')
         ptr++;

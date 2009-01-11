@@ -241,9 +241,6 @@ typedef struct VideoState {
     int pictq_size, pictq_rindex, pictq_windex;
     SDL_mutex *pictq_mutex;
     SDL_cond *pictq_cond;
-#if !CONFIG_AVFILTER
-    struct SwsContext *img_convert_ctx;
-#endif
     SDL_Rect last_display_rect;
 
     char filename[1024];
@@ -255,6 +252,8 @@ typedef struct VideoState {
     AVFilterContext *out_video_filter;  // the last filter in the video chain
     int use_dr1;
     FrameBuffer *buffer_pool;
+#else
+    struct SwsContext *img_convert_ctx;
 #endif
 
     int refresh;
@@ -2839,6 +2838,8 @@ static VideoState *stream_open(const char *filename, AVInputFormat *iformat)
     is->audio_current_pts_drift = -av_gettime() / 1000000.0;
     is->video_current_pts_drift = is->audio_current_pts_drift;
     is->av_sync_type = av_sync_type;
+    if (is->av_sync_type == AV_SYNC_EXTERNAL_CLOCK)
+	is->external_clock_time = av_gettime();	// XXX:
     is->read_tid     = SDL_CreateThread(read_thread, is);
     if (!is->read_tid) {
         av_free(is);

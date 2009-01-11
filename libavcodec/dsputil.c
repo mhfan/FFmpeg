@@ -2859,7 +2859,7 @@ av_cold void ff_dsputil_init(DSPContext* c, AVCodecContext *avctx)
             c->idct_add= ff_jref_idct_add;
             c->idct    = ff_j_rev_dct;
             c->idct_permutation_type= FF_LIBMPEG2_IDCT_PERM;
-        }else if(avctx->idct_algo==FF_IDCT_WMV2){
+        }else if((CONFIG_WMV2_DECODER || CONFIG_VC1_DECODER || CONFIG_WMV3_DECODER) && avctx->idct_algo==FF_IDCT_WMV2){	// XXX: mhfan
             c->idct_put= ff_wmv2_idct_put_c;
             c->idct_add= ff_wmv2_idct_add_c;
             c->idct    = ff_wmv2_idct_c;

@@ -320,7 +320,7 @@ static int thread_init(AVCodecContext *avctx)
             thread_count = avctx->thread_count = 1;
     }
 
-    if (thread_count <= 1) {
+    if (thread_count < 1) {	// XXX:
         avctx->active_thread_type = 0;
         return 0;
     }
