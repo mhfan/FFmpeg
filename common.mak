@@ -19,8 +19,11 @@ endif
 
 ALLFFLIBS = avcodec avdevice avfilter avformat avutil postproc swscale
 
-CPPFLAGS := -DHAVE_AV_CONFIG_H -I$(BUILD_ROOT_REL) -I$(SRC_PATH) $(CPPFLAGS)
+CPPFLAGS := -DHAVE_AV_CONFIG_H -I$(BUILD_ROOT_REL) -I$(SRC_PATH) $(CPPFLAGS) \
+	#$(addprefix -I$(SRC_PATH)/lib,$(ALLFFLIBS)) 	# XXX: mhfan
 CFLAGS   += $(ECFLAGS)
+
+%:: %_shipped; cat $< > $@
 
 %.o: %.c
 	$(CCDEP)

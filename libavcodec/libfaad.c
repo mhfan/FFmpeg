@@ -96,11 +96,13 @@ typedef struct {
 
 } FAACContext;
 
+#if 0
 static const unsigned long faac_srates[] =
 {
     96000, 88200, 64000, 48000, 44100, 32000,
     24000, 22050, 16000, 12000, 11025, 8000
 };
+#endif	/* comment by mhfan */
 
 static void channel_setup(AVCodecContext *avctx)
 {

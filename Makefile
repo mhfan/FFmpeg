@@ -45,7 +45,7 @@ INSTALL_TARGETS-$(CONFIG_DOC)   += install-man
 endif
 INSTALL_PROGS_TARGETS-$(CONFIG_SHARED) = install-libs
 
-all: $(FF_DEP_LIBS) $(PROGS) $(ALL_TARGETS-yes)
+all: $(BUILD_ROOT_REL)/version.h $(FF_DEP_LIBS) $(PROGS) $(ALL_TARGETS-yes)
 
 $(PROGS): %$(EXESUF): %_g$(EXESUF)
 	cp -p $< $@

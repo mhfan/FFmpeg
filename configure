@@ -1515,8 +1515,7 @@ enable $ARCH_EXT_LIST \
 
 die_unknown(){
     echo "Unknown option \"$1\"."
-    echo "See $0 --help for available options."
-    exit 1
+    #echo "See $0 --help for available options.";	exit 1	# mhfan
 }
 
 show_list() {
@@ -1541,7 +1540,7 @@ for opt do
     eval $(echo "${opt%%=*}" | sed 's/--/action=/;s/-/ thing=/')
     is_in "${thing}s" $COMPONENT_LIST || die_unknown "$opt"
     eval list=\$$(toupper $thing)_LIST
-    name=$(echo "${optval}" | sed "s/,/_${thing}|/g")_${thing}
+    name=$(echo "${optval}" | sed "s/[, ]\+/_${thing}|/g")_${thing}
     $action $(filter "$name" $list)
     ;;
     --enable-?*|--disable-?*)
@@ -2661,7 +2660,7 @@ echo "X{};" > $TMPV
 test_ldflags -Wl,--version-script,$TMPV &&
     append SHFLAGS '-Wl,--version-script,\$(SUBDIR)lib\$(NAME).ver'
 
-if enabled small; then
+if false && enabled small; then	# XXX: mhfan
     add_cflags $size_cflags
     optimizations="small"
 elif enabled optimizations; then
@@ -2715,6 +2714,7 @@ check_asm asmalign_pot '".align 3"'
 enabled_any $DECODER_LIST      && enable decoders
 enabled_any $ENCODER_LIST      && enable encoders
 enabled_any $HWACCEL_LIST      && enable hwaccels
+enabled_any $PARSER_LIST       && enable parsers
 enabled_any $BSF_LIST          && enable bsfs
 enabled_any $DEMUXER_LIST      && enable demuxers
 enabled_any $MUXER_LIST        && enable muxers
