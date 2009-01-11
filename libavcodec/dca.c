@@ -1800,7 +1800,7 @@ static int dca_decode_frame(AVCodecContext * avctx,
             s->channel_order_tab[channels - 1 - !!s->lfe] < 0)
             return -1;
 
-        if (avctx->request_channels == 2 && s->prim_channels > 2) {
+        if (avctx->channels == 2 && s->prim_channels > 2) {
             channels = 2;
             s->output = DCA_STEREO;
             avctx->channel_layout = AV_CH_LAYOUT_STEREO;
@@ -1870,8 +1870,6 @@ static int dca_decode_frame(AVCodecContext * avctx,
 
     return buf_size;
 }
-
-
 
 /**
  * DCA initialization

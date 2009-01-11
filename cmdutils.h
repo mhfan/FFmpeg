@@ -314,6 +314,8 @@ int show_sample_fmts(const char *opt, const char *arg);
  */
 int read_yesno(void);
 
+#define read_file ff_read_file	// XXX:
+
 /**
  * Read the file with name filename, and put its content in a newly
  * allocated 0-terminated buffer.

@@ -51,6 +51,8 @@ const CodecTags ff_mkv_codec_tags[]={
     {"A_VORBIS"         , CODEC_ID_VORBIS},
     {"A_WAVPACK4"       , CODEC_ID_WAVPACK},
 
+    {"A_AMR/NB"         , CODEC_ID_AMR_NB},	// XXX: mhfan
+
     {"S_TEXT/UTF8"      , CODEC_ID_TEXT},
     {"S_TEXT/UTF8"      , CODEC_ID_SRT},
     {"S_TEXT/ASCII"     , CODEC_ID_TEXT},
@@ -58,6 +60,7 @@ const CodecTags ff_mkv_codec_tags[]={
     {"S_TEXT/SSA"       , CODEC_ID_SSA},
     {"S_ASS"            , CODEC_ID_SSA},
     {"S_SSA"            , CODEC_ID_SSA},
+    //{"S_KATE"           , CODEC_ID_KATE},
     {"S_VOBSUB"         , CODEC_ID_DVD_SUBTITLE},
     {"S_HDMV/PGS"       , CODEC_ID_HDMV_PGS_SUBTITLE},
 

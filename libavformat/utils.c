@@ -2149,6 +2149,7 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
 	    ic->duration = av_rescale_q(last_pts,
 		    ic->streams[i]->time_base, AV_TIME_BASE_Q);
 
+	    if (1) av_seek_frame(ic, 0, 0, 0); else
 	    for (i = 0; i < ic->nb_streams; ++i) av_seek_frame(ic, i, 0, 0);
 	} else
 
@@ -2649,6 +2650,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
         }
     }
 #endif
+
+    // TODO: external subtitles support
 
  find_stream_info_err:
     for (i=0; i < ic->nb_streams; i++)

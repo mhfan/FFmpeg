@@ -60,7 +60,8 @@ static int process_callback(jack_nframes_t nframes, void *arg)
     int i, j;
     JackData *self = arg;
     float * buffer;
-    jack_nframes_t latency, cycle_delay;
+    jack_nframes_t cycle_delay;
+    jack_latency_range_t latency;
     AVPacket pkt;
     float *pkt_data;
     double cycle_time;
@@ -86,18 +87,17 @@ static int process_callback(jack_nframes_t nframes, void *arg)
     av_fifo_generic_read(self->new_pkts, &pkt, sizeof(pkt), NULL);
 
     pkt_data  = (float *) pkt.data;
-    latency   = 0;
 
     /* Copy and interleave audio data from the JACK buffer into the packet */
     for (i = 0; i < self->nports; i++) {
-        latency += jack_port_get_total_latency(self->client, self->ports[i]);
+        jack_port_get_latency_range(self->ports[i], JackPlaybackLatency, &latency);
         buffer = jack_port_get_buffer(self->ports[i], self->buffer_size);
         for (j = 0; j < self->buffer_size; j++)
             pkt_data[j * self->nports + i] = buffer[j];
     }
 
     /* Timestamp the packet with the cycle start time minus the average latency */
-    pkt.pts = (cycle_time - (double) latency / (self->nports * self->sample_rate)) * 1000000.0;
+    pkt.pts = (cycle_time - (double) latency.min / (self->nports * self->sample_rate)) * 1000000.0;	    // XXX:
 
     /* Send the now filled packet back, and increase packet counter */
     av_fifo_generic_write(self->filled_pkts, &pkt, sizeof(pkt), NULL);

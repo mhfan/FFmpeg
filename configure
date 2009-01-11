@@ -164,6 +164,7 @@ External library support:
   --enable-bzlib           enable bzlib [autodetect]
   --enable-libcelt         enable CELT/Opus decoding via libcelt [no]
   --enable-frei0r          enable frei0r video filtering
+  --enable-crystalhd       enable Crystal HD Video Decoder
   --enable-libaacplus      enable AAC+ encoding via libaacplus [no]
   --enable-libopencore-amrnb enable AMR-NB de/encoding via libopencore-amrnb [no]
   --enable-libopencore-amrwb enable AMR-WB decoding via libopencore-amrwb [no]
@@ -668,7 +669,7 @@ check_ld(){
         test "${f}" = "${f#-l}" && flags="$flags $f" || libs="$libs $f"
     done
     check_$type $($filter_cflags $flags) || return
-    check_cmd $ld $LDFLAGS $flags -o $TMPE $TMPO $libs $extralibs
+    check_cmd $ld $LDFLAGS $flags -o $TMPE $TMPO $libs $extralibs   # XXX:
 }
 
 check_cppflags(){
@@ -1875,8 +1876,7 @@ disable $(filter "$name" $type)
 
 die_unknown(){
     echo "Unknown option \"$1\"."
-    echo "See $0 --help for available options."
-    exit 1
+    #echo "See $0 --help for available options.";	exit 1	# mhfan
 }
 
 show_list() {
@@ -1904,7 +1904,7 @@ for opt do
     eval $(echo "${opt%%=*}" | sed 's/--/action=/;s/-/ thing=/')
     is_in "${thing}s" $COMPONENT_LIST || die_unknown "$opt"
     eval list=\$$(toupper $thing)_LIST
-    name=$(echo "${optval}" | sed "s/,/_${thing}|/g")_${thing}
+    name=$(echo "${optval}" | sed "s/[, ]\+/_${thing}|/g")_${thing}
     $action $(filter "$name" $list)
     ;;
     --enable-?*|--disable-?*)
@@ -3186,7 +3186,7 @@ fi
 
 if [ -n "$optflags" ]; then
     add_cflags $optflags
-elif enabled small; then
+elif false && enabled small; then	# XXX: mhfan
     add_cflags $size_cflags
 elif enabled optimizations; then
     add_cflags $speed_cflags
