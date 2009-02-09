@@ -80,3 +80,9 @@ OBJS-$(HAVE_NEON)                      += arm/dsputil_init_neon.o       \
                                           arm/mpegvideo_neon.o          \
                                           arm/simple_idct_neon.o        \
                                           $(NEON-OBJS-yes)
+
+OBJS-$(CONFIG_H263_MFC_DECODER)        += arm/libmfc.o
+OBJS-$(CONFIG_MPEG4_MFC_DECODER)       += arm/libmfc.o
+OBJS-$(CONFIG_H264_MFC_DECODER)        += arm/libmfc.o
+OBJS-$(CONFIG_VC1_MFC_DECODER)         += arm/libmfc.o
+
