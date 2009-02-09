@@ -618,6 +618,11 @@ OBJS-$(HAVE_ARMV6)                     += arm/dsputil_init_armv6.o      \
                                           arm/dsputil_armv6.o           \
                                           arm/simple_idct_armv6.o       \
 
+OBJS-$(CONFIG_H263_MFC_DECODER)        += arm/libmfc.o
+OBJS-$(CONFIG_MPEG4_MFC_DECODER)       += arm/libmfc.o
+OBJS-$(CONFIG_H264_MFC_DECODER)        += arm/libmfc.o
+OBJS-$(CONFIG_VC1_MFC_DECODER)         += arm/libmfc.o
+
 OBJS-$(HAVE_ARMVFP)                    += arm/dsputil_vfp.o             \
                                           arm/dsputil_init_vfp.o        \
 
