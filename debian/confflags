@@ -1,0 +1,196 @@
+# -*- mode: makefile -*-
+# vim:syntax=make
+#
+# build a static version on every architecture in the ffmpeg-debian package
+# shared is generic, i.e. without arch specific opcodes
+FLAVORS := shared
+ifeq ($(DEB_SOURCE),ffmpeg-debian)
+FLAVORS += static
+else ifneq (,$(shell cat debian/control | grep -m 1 -e '^Package: .*-dev$$'))
+# always build static library if we're building dev packages
+FLAVORS += static
+endif
+
+export DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
+export DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
+export DEB_HOST_ARCH      ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+SVNREVISION=$(shell cat .svnrevision 2>/dev/null || echo "UNKNOWN")
+
+# the other flavors always build dynamic versions
+# Also, disable architecture-specific optimizations for default shared build
+ifeq      ($(DEB_HOST_ARCH),armel)
+nooptflags += --disable-armv5te --disable-armv6 --disable-armv6t2
+nooptflags += --disable-armvfp --disable-neon
+# disabled for now as we need hwcaps support in glibc first
+#FLAVORS += neon vfp
+else ifeq ($(DEB_HOST_ARCH),arm)
+nooptflags += --disable-armv5te --disable-armv6 --disable-armv6t2
+nooptflags += --disable-armvfp --disable-neon
+else ifeq ($(DEB_HOST_ARCH),i386)
+FLAVORS += cmov
+else ifeq ($(DEB_HOST_ARCH),powerpc)
+FLAVORS += altivec
+nooptflags += --disable-altivec
+else ifeq ($(DEB_HOST_ARCH),sparc)
+FLAVORS += vis
+nooptflags += --disable-vis
+endif
+
+define cond_enable
+	$(shell test -r $(1) && echo --enable-$(2) )
+endef
+
+# Configuration flags causing the libs to be GPL tainted
+gpl_confflags += --enable-gpl
+gpl_confflags += --enable-nonfree
+gpl_confflags += --enable-postproc
+gpl_confflags += --enable-swscale
+gpl_confflags += --enable-x11grab
+
+# there is no libfaad in ubuntu/main, on in ubuntu/multiverse
+gpl_confflags += $(call cond_enable,/usr/include/faad.h,libfaad)
+
+# "forbidden" encoders, see README.Debian for details
+disable_encoders += --disable-encoder=h263
+disable_encoders += --disable-encoder=h263p
+disable_encoders += --disable-encoder=mpeg2video
+disable_encoders += --disable-encoder=mpeg4
+disable_encoders += --disable-encoder=msmpeg4v1
+disable_encoders += --disable-encoder=msmpeg4v2
+disable_encoders += --disable-encoder=msmpeg4v3
+
+# disabling the next three lines might enable some additional encoders,
+# not in debian at this point, as we munge the source there as well,
+# though
+ifeq ($(DEB_SOURCE),ffmpeg-debian)
+confflags += $(disable_encoders)
+endif
+
+# Common configuration flags
+confflags += --extra-version='$(DEB_VERSION)'
+confflags += --prefix=/usr
+confflags += --enable-avfilter
+confflags += --enable-avfilter-lavf
+confflags += --enable-bzlib
+# confflags += --enable-libdirac # Waiting for libdirac to enter Debian
+confflags += --enable-libgsm
+confflags += --enable-libopenjpeg
+confflags += --enable-libschroedinger
+confflags += --enable-libspeex
+confflags += --enable-libtheora
+confflags += --enable-libvorbis
+confflags += --enable-pthreads
+confflags += --enable-zlib
+confflags += --disable-stripping
+confflags += --disable-vhook
+confflags += $(extra_common_confflags)
+
+# this part below is intended for the 'ffmpeg' package in ubuntu/multiverse
+gpl_confflags += $(call cond_enable,/usr/include/xvid.h,libxvid)
+confflags += $(call cond_enable,/usr/include/lame/lame.h,libmp3lame)
+confflags += $(call cond_enable,/usr/include/faac.h,libfaac)
+gpl_confflags += $(call cond_enable,/usr/include/x264.h,libx264)
+confflags += $(call cond_enable,/usr/include/vdpau/vdpau.h,vdpau)
+
+# comment out following line for LGPL versions of the libraries
+confflags += $(gpl_confflags)
+
+# Enable IEEE 1394 (FireWire) support on Linux only
+ifneq (,$(findstring linux,$(DEB_HOST_GNU_TYPE)))
+  confflags += --enable-libdc1394
+  lib1394-dev += libraw1394-dev, libdc1394-22-dev
+endif
+
+# XXX this probably needs fixing
+CFLAGS :=
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+# Various parts of ffmpeg (and swscale) FTBFS when compiling with -fPIC
+# and with mmx code enabled.
+  confflags += --disable-optimizations
+  confflags += --disable-mmx
+endif
+
+# Configuration flags for the static libraries
+static_build_confflags += $(confflags)
+static_build_confflags += --disable-ffmpeg
+static_build_confflags += --disable-ffserver
+static_build_confflags += --disable-ffplay
+
+# Configuration flags for the non-optimized shared libraries
+shared_build_confflags += $(confflags)
+# amd64 has no problems with optimized shared libs. i386 and arm do.
+ifneq      ($(DEB_HOST_ARCH),amd64)
+shared_build_confflags += $(nooptflags)
+endif
+shared_build_confflags += --enable-shared
+shared_build_confflags += --disable-static
+
+## armel architecture specific
+# Configuration flags for the optimised shared libraries
+vfp_build_confflags += $(confflags)
+vfp_build_confflags += --shlibdir=/usr/lib/vfp
+vfp_build_confflags += --enable-armvfp
+vfp_build_confflags += --enable-shared
+vfp_build_confflags += --disable-static
+vfp_build_confflags += --extra-cflags="-mfpu=vfp -mfloat-abi=softfp"
+vfp_build_confflags += --disable-ffmpeg
+vfp_build_confflags += --disable-ffplay
+neon_build_confflags += $(confflags)
+neon_build_confflags += --shlibdir=/usr/lib/neon
+neon_build_confflags += --enable-neon
+neon_build_confflags += --enable-shared
+neon_build_confflags += --disable-static
+neon_build_confflags += --disable-ffmpeg
+neon_build_confflags += --disable-ffplay
+
+## i386 architecture specific
+# Configuration flags for the optimized shared libraries
+cmov_build_confflags += $(confflags)
+cmov_build_confflags += $(nooptflags)
+cmov_build_confflags += --shlibdir=/usr/lib/i686/cmov
+cmov_build_confflags += --cpu='i686'
+cmov_build_confflags += --enable-shared
+cmov_build_confflags += --disable-static
+cmov_build_confflags += --disable-ffmpeg
+cmov_build_confflags += --disable-ffserver
+cmov_build_confflags += --disable-ffplay
+
+## powerpc architecture specific
+# Configuration flags for the optimized shared libraries
+altivec_build_confflags += $(confflags)
+altivec_build_confflags += --shlibdir=/usr/lib/altivec
+altivec_build_confflags += --cpu='g4'
+altivec_build_confflags += --enable-shared
+altivec_build_confflags += --disable-static
+altivec_build_confflags += --extra-cflags="-fPIC -DPIC"
+altivec_build_confflags += --enable-altivec
+altivec_build_confflags += --disable-ffmpeg
+altivec_build_confflags += --disable-ffserver
+altivec_build_confflags += --disable-ffplay
+
+## sparc architecture specific
+# Configuration flags for the optimized shared libraries
+vis_build_confflags += $(confflags)
+vis_build_confflags += --shlibdir=/usr/lib/v9
+vis_build_confflags += --cpu='sparc64'
+vis_build_confflags += --enable-shared
+vis_build_confflags += --disable-static
+vis_build_confflags += --extra-cflags="-fPIC -DPIC"
+vis_build_confflags += --disable-ffmpeg
+vis_build_confflags += --disable-ffserver
+vis_build_confflags += --disable-ffplay
+
+# Support multiple makes at once (taken from the qemu package)
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+  NJOBS := $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+else
+  NJOBS := 1
+endif
+
+# Additional documentation for PowerPC
+ifneq (,$(findstring powerpc,$(DEB_BUILD_GNU_TYPE)))
+  extradoc := doc/ffmpeg_powerpc_performance_evaluation_howto.txt
+endif
+
