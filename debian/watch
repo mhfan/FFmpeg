@@ -1,0 +1,3 @@
+version=3
+opts="uversionmangle=s/.*-snapshot//i" \
+http://libav.org/releases/libav-(.*)\.tar\.gz

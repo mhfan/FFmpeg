@@ -1,0 +1,283 @@
+Source: libav
+Section: libs
+Priority: optional
+Maintainer: Debian multimedia packages maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
+Uploaders: Sam Hocevar (Debian packages) <sam+deb@zoy.org>,
+ Loic Minier <lool@dooz.org>,
+ Reinhard Tartler <siretart@tauware.de>,
+ Fabian Greffrath <fabian+debian@greffrath.com>,
+ Andres Mejia <mcitadel@gmail.com>,
+ Jonas Smedegaard <dr@jones.dk>
+DM-Upload-Allowed: yes
+Standards-Version: 3.9.1
+Vcs-Git: git://git.debian.org/git/pkg-multimedia/libav.git
+Vcs-Browser: http://git.debian.org/?p=pkg-multimedia/libav.git;a=summary
+Homepage: http://libav.org/
+Build-Depends-Indep: doxygen
+Build-Depends: debhelper (>= 7),
+ libasound2-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+ libbz2-dev,
+ libdc1394-22-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+ libdirac-dev,
+ libfreetype6-dev,
+ libgsm1-dev,
+ libimlib2-dev,
+ libjack-dev,
+ libopenjpeg-dev,
+ libraw1394-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+ librtmp-dev (>= 2.2e-4),
+ libschroedinger-dev,
+ libsdl1.2-dev,
+ libspeex-dev,
+ libtheora-dev (>> 0.0.0.alpha4),
+ libva-dev [!hurd-i386],
+ libvdpau-dev,
+ libvorbis-dev,
+ libvpx-dev,
+ libx11-dev,
+ libxext-dev,
+ libxfixes-dev,
+ libxvmc-dev,
+ texi2html,
+ yasm [amd64 i386 kfreebsd-amd64 kfreebsd-i386 mips mipsel s390 sparc powerpc],
+ zlib1g-dev
+
+Package: ffmpeg
+Section: video
+Architecture: any
+Replaces: libavcodec53 (<< ${source:Version}),
+ libavcodec-extra-53 (<< 4:0.6~)
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Conflicts: ffprobe
+Description: Multimedia player, server, encoder and transcoder
+ This package contains the ffplay multimedia player, the ffserver streaming
+ server and the ffmpeg audio and video encoder. They support most existing
+ file formats (AVI, MPEG, OGG, Matroska, ASF...) and encoding formats (MPEG,
+ DivX, MPEG4, AC3, DV...).
+
+Package: ffmpeg-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: libav-dbg,
+ ${misc:Depends}
+Description: Debug symbols for Libav related packages
+ This package contains debug data of the Libav related shared libraries.
+ .
+ Most people will not need this package. Please install it to produce useful
+ stacktraces to help debugging the Libav libraries.
+ .
+ This package is only used for transitional purposes and can be safely
+ removed.
+
+Package: libav-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: libavutil51 (= ${binary:Version}),
+ libavcodec53 (= ${binary:Version}),
+ libavdevice53 (= ${binary:Version}),
+ libpostproc52 (= ${binary:Version}),
+ libavformat53 (= ${binary:Version}),
+ libswscale1 (= ${binary:Version}),
+ ffmpeg (= ${binary:Version}),
+ ${misc:Depends}
+Description: Debug symbols for Libav related packages
+ This package contains debug data of the Libav related shared libraries.
+ .
+ Most people will not need this package. Please install it to produce useful
+ stacktraces to help debugging the Libav library.
+
+Package: libav-source
+Architecture: all
+Section: devel
+Depends: ${misc:Depends}
+Description: Patched Libav sources
+ This package contains a tarball the source file that were used to produce
+ this package, containing all modifications that have been applied inline.
+ .
+ This package is used as build-dependency for 'libav-extra', which provides
+ the "extra" variants of libav.
+
+Package: ffmpeg-doc
+Section: doc
+Architecture: all
+Depends: libav-doc,
+ ${misc:Depends}
+Description: Documentation of the Libav API (transitional package)
+ This package contains the html doxygen documentation of the Libav API.
+ .
+ Only application developers will find this package useful.
+ .
+ This package is only used for transitional purposes and can be safely
+ removed.
+
+Package: libav-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Breaks: ffmpeg-doc (<< ${binary:Version})
+Replaces: ffmpeg-doc (<< ${binary:Version})
+Description: Documentation of the Libav API
+ This package contains the html doxygen documentation of the Libav API.
+ .
+ Only application developers will find this package useful.
+
+Package: libavutil51
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav utility library
+ This is the common utility library from Libav. It contains shared code
+ used by all other Libav libraries.
+
+Package: libavcodec53
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav codec library
+ This is the codec library from Libav (both encoding and decoding).
+ .
+ It supports most existing codecs (MPEG, MPEG2, MPEG4, AC3, DV...).
+
+Package: libavdevice53
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav device handling library
+ This is the device handling library from Libav.
+
+Package: libavformat53
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav file format library
+ This is the library for handling file formats from Libav.
+ .
+ It supports most existing file formats (AVI, MPEG, OGG, Matroska,
+ ASF...).
+
+Package: libavfilter2
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav video filtering library
+ This is the video filtering library from Libav.
+
+Package: libpostproc52
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav video postprocessing library
+ This is the video postprocessing library from Libav.
+
+Package: libswscale1
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Description: Libav video scaling library
+ This is the video software scaling library from Libav.
+
+Package: libavutil-dev
+Section: libdevel
+Architecture: any
+Depends: libavutil51 (>= ${binary:Version}) | libavutil-extra-51 (>= ${source:Upstream-Version}),
+ libavutil51 (<= ${source:Upstream-Version}-99) | libavutil-extra-51 (<= ${source:Upstream-Version}-99),
+ ${misc:Depends}
+Description: Development files for libavutil
+ This is the common utility library from Libav.
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libavutil.
+
+Package: libavcodec-dev
+Section: libdevel
+Architecture: any
+Depends: libavcodec53 (>= ${binary:Version}) | libavcodec-extra-53 (>= ${source:Upstream-Version}),
+ libavcodec53 (<= ${source:Upstream-Version}-99) | libavcodec-extra-53 (<= ${source:Upstream-Version}-99),
+ libavutil-dev (= ${binary:Version}),
+ ${misc:Depends}
+Suggests: libfaad-dev,
+ libgsm1-dev,
+ libogg-dev,
+ libschroedinger-dev,
+ libspeex-dev,
+ libtheora-dev (>> 0.0.0.alpha4),
+ libvorbis-dev,
+ libx11-dev,
+ libxext-dev,
+ zlib1g-dev,
+ ${lib1394-dev}
+Description: Development files for libavcodec
+ This is the codec library from Libav. It supports most existing
+ encoding formats (MPEG, DivX, MPEG4, AC3, DV...).
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libavcodec.
+
+Package: libavdevice-dev
+Section: libdevel
+Architecture: any
+Depends: libavdevice53 (>= ${binary:Version}) | libavdevice-extra-53 (>= ${source:Upstream-Version}),
+ libavdevice53 (<= ${source:Upstream-Version}-99) | libavdevice-extra-53 (<= ${source:Upstream-Version}-99),
+ libavformat-dev (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for libavdevice
+ This is the device handling library from Libav.
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libavdevice.
+
+Package: libavformat-dev
+Section: libdevel
+Architecture: any
+Depends: libavformat53 (>= ${binary:Version}) | libavformat-extra-53 (>= ${source:Upstream-Version}),
+ libavformat53 (<= ${source:Upstream-Version}-99) | libavformat-extra-53 (<= ${source:Upstream-Version}-99),
+ libavcodec-dev (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for libavformat
+ This is the demuxer library from Libav. It supports most
+ existing file formats (AVI, MPEG, OGG, Matroska, ASF...).
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libavformat.
+
+Package: libavfilter-dev
+Section: libdevel
+Architecture: any
+Depends: libavfilter2 (>= ${binary:Version}) | libavfilter-extra-2 (>= ${source:Upstream-Version}),
+ libavfilter2 (<= ${source:Upstream-Version}-99) | libavfilter-extra-2 (<= ${source:Upstream-Version}-99),
+ libavcodec-dev (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for libavfilter
+ This is the video filtering library from Libav.
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libavfilter.
+
+Package: libpostproc-dev
+Section: libdevel
+Architecture: any
+Depends: libpostproc52 (>= ${binary:Version}) | libpostproc-extra-52 (>= ${source:Upstream-Version}),
+ libpostproc52 (<= ${source:Upstream-Version}-99) | libpostproc-extra-52 (<= ${source:Upstream-Version}-99),
+ libavutil-dev (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for libpostproc
+ This is the video postprocessing library from Libav.
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libpostproc.
+
+Package: libswscale-dev
+Section: libdevel
+Architecture: any
+Depends: libswscale1 (>= ${binary:Version}) | libswscale-extra-1 (>= ${source:Upstream-Version}),
+ libswscale1 (<= ${source:Upstream-Version}-99) | libswscale-extra-1 (<= ${source:Upstream-Version}-99),
+ libavutil-dev (= ${binary:Version}),
+ ${misc:Depends}
+Description: Development files for libswscale
+ This is the video scaling library from Libav.
+ .
+ This package contains the header files and static libraries needed to
+ compile applications or shared objects that use libswscale.
