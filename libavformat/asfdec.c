@@ -187,6 +187,10 @@ static int asf_read_header(AVFormatContext *s, AVFormatParameters *ap)
     AVRational dar[128];
     uint32_t bitrate[128];
 
+#if (CONFIG_WMV3_CDK_DECODER)
+    asf->first_visit = 1;
+#endif
+
     memset(dar, 0, sizeof(dar));
     memset(bitrate, 0, sizeof(bitrate));
 
@@ -945,8 +949,50 @@ static int asf_read_packet(AVFormatContext *s, AVPacket *pkt)
         int ret;
 
         /* parse cached packets, if any */
-        if ((ret = ff_asf_parse_packet(s, s->pb, pkt)) <= 0)
+        if ((ret = ff_asf_parse_packet(s, s->pb, pkt)) <= 0) {
+#if (CONFIG_WMV3_CDK_DECODER)
+            AVCodecContext *avctx = s->streams[asf->stream_index]->codec;
+            if ((CONFIG_WMV3_CDK_DECODER) &&
+		    (avctx->codec_id == CODEC_ID_WMV3 ||	// XXX:
+		     avctx->codec_id == CODEC_ID_VC1)) {
+		uint32_t idx, len = pkt->size;
+		uint8_t *ptr, *base;
+
+                if (asf->first_visit) {
+		    asf->first_visit = 0;
+		    base =  ptr = av_malloc(len +=
+			    avctx->extradata_size + (8 + 2) * 4);
+		    // XXX: + FF_INPUT_BUFFER_PADDING_SIZE
+                    if (!ptr) return AVERROR(ENOMEM);
+		    idx = asf->stream_bitrates[asf->stream_index + 1];
+
+		    AV_WL32(ptr, 0xc5000000);		ptr += 4;   // RCV ver.
+		    AV_WL32(ptr, avctx->extradata_size);ptr += 4;
+		    memcpy (ptr, avctx->extradata, avctx->extradata_size);
+			    ptr += avctx->extradata_size;
+
+		    AV_WL32(ptr, avctx->height);	ptr += 4;
+		    AV_WL32(ptr, avctx->width);		ptr += 4;
+		    AV_WL32(ptr, 12);			ptr += 4;   // RCV hdr.
+		    AV_WL32(ptr, asf->start_time);	ptr += 4;
+		    AV_WL32(ptr, idx);			ptr += 4;
+		    AV_WL32(ptr, 25);			ptr += 4;   // XXX: FPS
+                } else {
+		    base =  ptr = av_malloc(len += 2 * 4);
+                    if (!ptr) return AVERROR(ENOMEM);	// XXX:
+                }
+
+		    AV_WL32(ptr, pkt->size);		ptr += 4;
+		    AV_WL32(ptr, (int)pkt->dts);	ptr += 4;
+		    memcpy (ptr, pkt->data, pkt->size);
+
+		    av_free(pkt->data);
+		    pkt->data = base;
+		    pkt->size = len;
+            }
+#endif
             return ret;
+        }
         if ((ret = ff_asf_get_packet(s, s->pb)) < 0)
             assert(asf->packet_size_left < FRAME_HEADER_SIZE || asf->packet_segments < 1);
         asf->packet_time_start = 0;

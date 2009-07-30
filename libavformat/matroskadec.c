@@ -1306,6 +1306,10 @@ static int matroska_read_header(AVFormatContext *s, AVFormatParameters *ap)
             put_le32(&b, matroska->ctx->duration * track->audio.out_samplerate);
         } else if (codec_id == CODEC_ID_RV10 || codec_id == CODEC_ID_RV20 ||
                    codec_id == CODEC_ID_RV30 || codec_id == CODEC_ID_RV40) {
+	    if ((CONFIG_RV40_CDK_DECODER) &&
+		    codec_id != CODEC_ID_RV10)	// XXX:
+		AV_WB32(track->codec_priv.data,
+			track->codec_priv.size); else
             extradata_offset = 26;
         } else if (codec_id == CODEC_ID_RA_144) {
             track->audio.out_samplerate = 8000;
@@ -1683,6 +1687,29 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
 
                 pkt = av_mallocz(sizeof(AVPacket));
                 /* XXX: prevent data copy... */
+		if ((CONFIG_RV40_CDK_DECODER) &&
+			(st->codec->codec_id == CODEC_ID_RV20 ||
+			 st->codec->codec_id == CODEC_ID_RV30 ||
+			 st->codec->codec_id == CODEC_ID_RV40)) {   // XXX:
+		    uint8_t *ptr, *buf = pkt_data;
+		    uint32_t slices = *buf++ + 1;
+		    if (av_new_packet(pkt, 19 + pkt_size) < 0) {
+			av_free(pkt);	res = AVERROR(ENOMEM);	break;
+		    }	else ptr = pkt->data;	//++matroska->seqn;
+		    offset = pkt_size - slices * 4 * 2 - 1;
+
+		    AV_WB32(ptr, offset);	ptr += 4;
+		    AV_WB32(ptr, timecode);	ptr += 4;
+		    AV_WB16(ptr, 0/*matroska->seqn*/);	ptr += 2;   // XXX:
+		    AV_WB16(ptr, 0/*is_keyframe<<1*/);	ptr += 2;   // XXX:
+		    AV_WB32(ptr, 0);		ptr += 4;   // XXX: last pkt?
+		    AV_WB32(ptr, slices);	ptr += 4;
+
+		    for (slices <<= 1; slices--; ) {	uint32_t val;
+			val = AV_RL32(buf);	buf += 4;
+			AV_WB32(ptr, val);	ptr += 4;
+		    }	memcpy (ptr, buf, offset);
+		} else {
                 if (av_new_packet(pkt, pkt_size+offset) < 0) {
                     av_free(pkt);
                     res = AVERROR(ENOMEM);
@@ -1691,6 +1718,7 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
                 if (offset)
                     memcpy (pkt->data, encodings->compression.settings.data, offset);
                 memcpy (pkt->data+offset, pkt_data, pkt_size);
+	    }
 
                 if (pkt_data != data)
                     av_free(pkt_data);

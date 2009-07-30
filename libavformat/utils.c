@@ -916,13 +916,18 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
 
             /* presentation is not delayed : PTS and DTS are the same */
             if(pkt->pts == AV_NOPTS_VALUE)
+                if (st->codec->codec_type != CODEC_TYPE_VIDEO)
                 pkt->pts = pkt->dts;
             update_initial_timestamps(s, pkt->stream_index, pkt->pts, pkt->pts);
             if(pkt->pts == AV_NOPTS_VALUE)
+                if (st->codec->codec_type != CODEC_TYPE_VIDEO)
                 pkt->pts = st->cur_dts;
+	    if (st->codec->codec_type != CODEC_TYPE_VIDEO)
             pkt->dts = pkt->pts;
             if(pkt->pts != AV_NOPTS_VALUE)
                 st->cur_dts = pkt->pts + pkt->duration;
+	    else if (st->codec->codec_type == CODEC_TYPE_VIDEO)
+		st->cur_dts = pkt->dts + pkt->duration;
         }
     }
 

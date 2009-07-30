@@ -126,6 +126,10 @@ typedef struct {
     int64_t packet_pos;
     int32_t start_time;	// XXX: mhfan
 
+#if (CONFIG_WMV3_CDK_DECODER)
+    uint16_t first_visit;
+#endif
+
     int stream_index;
 
 
