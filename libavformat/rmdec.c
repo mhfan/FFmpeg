@@ -335,10 +335,36 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, AVIOContext *pb,
         st->avg_frame_rate.num = st->codec->time_base.den;
         st->avg_frame_rate.den = st->codec->time_base.num;
 
-        if ((ret = rm_read_extradata(pb, st->codec, codec_data_size - (avio_tell(pb) - codec_pos))) < 0)
-            return ret;
+	size = avio_tell(pb) - codec_pos;
+	if ((CONFIG_RV40_CDK_DECODER)
+		&& st->codec->codec_tag != MKTAG('R', 'V', '1', '0')) {
+#if 1
+	    avio_seek(pb, codec_pos, SEEK_SET);
+	    if ((ret = rm_read_extradata(pb, st->codec,
+		    codec_data_size)) < 0) return ret;
+	    AV_WB32(st->codec->extradata, codec_data_size);
+#else// XXX: FF_INPUT_BUFFER_PADDING_SIZE
+	    uint8_t* ptr = st->codec->extradata = av_malloc(codec_data_size);
 
-	v = st->codec->extradata[4];
+	    AV_WB32(ptr, codec_data_size);		ptr += 4;
+	    AV_WL32(ptr, MKTAG('V','I','D','O'));	ptr += 4;
+	    AV_WL32(ptr, st->codec->codec_tag);		ptr += 4;
+	    AV_WB16(ptr, st->codec->width);		ptr += 2;
+	    AV_WB16(ptr, st->codec->height);		ptr += 2;
+	    AV_WB16(ptr, bitc);				ptr += 2;
+	    AV_WB16(ptr, padw);				ptr += 2;
+	    AV_WB16(ptr, padh);				ptr += 2;
+	    AV_WB32(ptr, st->codec->time_base.den);	ptr += 4;
+
+	    avio_read(pb, ptr, codec_data_size - size);
+#endif
+	    v = st->codec->extradata[size + 4];
+	} else {
+	    if ((ret = rm_read_extradata(pb, st->codec,
+		    codec_data_size - size)) < 0) return ret;
+
+	    v = st->codec->extradata[4];
+	}
 
 	switch (v >> 4) {
 	case 1: st->codec->codec_id = CODEC_ID_RV10; break;
@@ -749,6 +775,31 @@ ff_rm_parse_packet (AVFormatContext *s, AVIOContext *pb,
         rm->current_stream= st->id;
         if(rm_assemble_video_frame(s, pb, rm, ast, pkt, len, seq, &timestamp))
             return -1; //got partial frame
+
+	if ((CONFIG_RV40_CDK_DECODER)
+		&& st->codec->codec_id != CODEC_ID_RV10) {	// XXX:
+	    uint8_t *ptr, *base, *buf = pkt->data;
+	    uint32_t slices = *buf++ + 1;	// XXX: ast->cur_slice
+
+	    ptr = base = av_malloc(pkt->size + 19);
+            if (!ptr) return AVERROR(ENOMEM); else
+	    len = pkt->size - slices * 4 * 2 - 1;
+	    pkt->size += 19;	//++ast->seqn;
+
+	    AV_WB32(ptr, len);		ptr += 4;
+	    AV_WB32(ptr, timestamp);	ptr += 4;	//  ast->curpic_num
+	    AV_WB16(ptr, 0);		ptr += 2;	// XXX: ast->seqn
+	    AV_WB16(ptr, flags);	ptr += 2;	// XXX:
+	    AV_WB32(ptr, 0);		ptr += 4;	// XXX: last packet?
+	    AV_WB32(ptr, slices);	ptr += 4;
+
+	    for (slices <<= 1; slices--; ) {	uint32_t val;
+		val = AV_RL32(buf);	buf += 4;
+		AV_WB32(ptr, val);	ptr += 4;
+	    }	memcpy (ptr, buf, len);
+
+	    av_free(pkt->data);	pkt->data = base;
+	}
     } else if (st->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
         if ((ast->deint_id == DEINT_ID_GENR) ||
             (ast->deint_id == DEINT_ID_INT4) ||

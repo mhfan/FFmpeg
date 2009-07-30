@@ -1201,6 +1201,12 @@ resync:
                 avi->dts_max = dts;
         }
 
+	if (CONFIG_MPEG4_CDK_DECODER && pkt->size < 12 &&
+		st->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+	    av_free_packet(pkt);    //return AVERROR(EAGAIN);
+	    return avi_read_packet(s, pkt);	// XXX:
+	}
+
         return size;
     }
 
