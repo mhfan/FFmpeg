@@ -1864,6 +1864,15 @@ done
 
 enable $ARCH_EXT_LIST $ACODEC_TESTS $VCODEC_TESTS $LAVF_TESTS $LAVFI_TESTS $SEEK_TESTS
 
+name=;
+type="decoder";
+name="$name *_mfc";
+name="$name *_cdk";
+name="$name *_ssbmfc";
+name=$(echo "$name" | sed "s/[, ]\+/_$type|/g")_$type
+eval type=\$$(toupper $type)_LIST
+disable $(filter "$name" $type)
+
 die_unknown(){
     echo "Unknown option \"$1\"."
     echo "See $0 --help for available options."
