@@ -1513,6 +1513,15 @@ enable $ARCH_EXT_LIST \
        $INDEV_LIST \
        $OUTDEV_LIST \
 
+name=;
+type="decoder";
+name="$name *_mfc";
+name="$name *_tcc";
+name="$name *_cdk";
+name=$(echo "$name" | sed "s/[, ]\+/_$type|/g")_$type
+eval type=\$$(toupper $type)_LIST
+disable $(filter "$name" $type)
+
 die_unknown(){
     echo "Unknown option \"$1\"."
     #echo "See $0 --help for available options.";	exit 1	# mhfan
