@@ -626,6 +626,23 @@ OBJS-$(CONFIG_VC1_MFC_DECODER)         	+= arm/libmfc.o
 
 EXTRALIBS += $(if $(CONFIG_MPEG4_MFC_DECODER),-L/opt/mm-s3c/lib -lmfc)
 
+OBJS-$(CONFIG_MPEG2_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_MPEG1_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_MPEG4_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_H264_CDK_DECODER) 	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_H263_CDK_DECODER) 	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV40_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV30_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV20_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV10_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV3_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV2_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV1_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_VC1_CDK_DECODER) 		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_FLV_CDK_DECODER) 		+= arm/tcc_cdkvdec.o
+
+EXTRALIBS += $(if $(CONFIG_MPEG4_CDK_DECODER),-L/opt/vpu-tcc/lib -ltcccdk)
+
 OBJS-$(HAVE_ARMVFP)                    += arm/dsputil_vfp.o             \
                                           arm/dsputil_init_vfp.o        \
 
@@ -717,6 +734,9 @@ CLEANFILES = sin_tables.c cos_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 include $(SUBDIR)../subdir.mak
 
 $(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
+
+$(SUBDIR)arm/tcc_cdkvdec.o: CFLAGS += -DTCC_89XX_INCLUDE=1 \
+	-I/opt/vpu-tcc/include
 
 $(SUBDIR)arm/libmfc.o: CFLAGS += -DARCH_S3C64XX=1 -I/opt/mm-s3c/include
 

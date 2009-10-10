@@ -70,6 +70,21 @@ void avcodec_register_all(void)
     REGISTER_DECODER (WMV3_MFC, wmv3_mfc);
     REGISTER_DECODER (VC1_MFC, vc1_mfc);
 
+    REGISTER_DECODER (MPEG4_CDK, mpeg4_cdk);
+    REGISTER_DECODER (MPEG2_CDK, mpeg2_cdk);
+    REGISTER_DECODER (MPEG1_CDK, mpeg1_cdk);
+    REGISTER_DECODER (H264_CDK, h264_cdk);
+    //REGISTER_DECODER (H263_CDK, h263_cdk);
+    REGISTER_DECODER (RV40_CDK, rv40_cdk);
+    REGISTER_DECODER (RV30_CDK, rv30_cdk);
+    REGISTER_DECODER (RV20_CDK, rv20_cdk);
+    //REGISTER_DECODER (RV10_CDK, rv10_cdk);
+    REGISTER_DECODER (WMV3_CDK, wmv3_cdk);
+    //REGISTER_DECODER (WMV2_CDK, wmv2_cdk);
+    //REGISTER_DECODER (WMV1_CDK, wmv1_cdk);
+    REGISTER_DECODER (VC1_CDK, vc1_cdk);
+    //REGISTER_DECODER (FLV_CDK, flv_cdk);
+
     /* video codecs */
     REGISTER_DECODER (AASC, aasc);
     REGISTER_DECODER (AMV, amv);
