@@ -728,6 +728,9 @@ include $(SRC_PATH)/subdir.mak
 
 #$(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
 
+$(SUBDIR)arm/tcc_cdkvdec.o: CFLAGS += -DTCC_89XX_INCLUDE=1 \
+	-I/opt/vpu-tcc/include
+
 $(SUBDIR)arm/libmfc.o: CFLAGS += -DARCH_S3C64XX=1 -I/opt/mm-s3c/include
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o

@@ -89,3 +89,18 @@ OBJS-$(CONFIG_VC1_MFC_DECODER) 		+= arm/libmfc.o
 
 EXTRALIBS += $(if $(CONFIG_MPEG4_MFC_DECODER),-L/opt/mm-s3c/lib -lmfc)
 
+OBJS-$(CONFIG_MPEG2_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_MPEG1_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_MPEG4_CDK_DECODER)	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_H264_CDK_DECODER) 	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_H263_CDK_DECODER) 	+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV40_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV30_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV20_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_RV10_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV3_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV2_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_WMV1_CDK_DECODER)		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_VC1_CDK_DECODER) 		+= arm/tcc_cdkvdec.o
+OBJS-$(CONFIG_FLV_CDK_DECODER) 		+= arm/tcc_cdkvdec.o
+
