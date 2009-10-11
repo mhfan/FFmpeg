@@ -218,7 +218,7 @@ static av_cold int ape_decode_init(AVCodecContext *avctx)
 
     av_log(avctx, AV_LOG_DEBUG, "Compression Level: %d - Flags: %d\n",
            s->compression_level, s->flags);
-    if (s->compression_level % 1000 || s->compression_level > COMPRESSION_LEVEL_INSANE || !s->compression_level) {
+    if (s->compression_level % 1000 || s->compression_level >= COMPRESSION_LEVEL_INSANE || !s->compression_level) {
         av_log(avctx, AV_LOG_ERROR, "Incorrect compression level %d\n",
                s->compression_level);
         return AVERROR_INVALIDDATA;
@@ -921,9 +921,9 @@ static int ape_decode_frame(AVCodecContext *avctx, void *data,
     emms_c();
 
     if (s->error) {
-        s->samples=0;
         av_log(avctx, AV_LOG_ERROR, "Error decoding frame\n");
-        return AVERROR_INVALIDDATA;
+	s->samples = blockstodecode;	s->ptr = s->data_end;
+        //return AVERROR_INVALIDDATA;	// XXX: mhfan
     }
 
     switch (s->bps) {
