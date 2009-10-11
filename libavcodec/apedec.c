@@ -186,8 +186,8 @@ static av_cold int ape_decode_init(AVCodecContext * avctx)
     s->flags             = AV_RL16(avctx->extradata + 4);
 
     av_log(avctx, AV_LOG_DEBUG, "Compression Level: %d - Flags: %d\n", s->compression_level, s->flags);
-    if (s->compression_level % 1000 || s->compression_level > COMPRESSION_LEVEL_INSANE) {
-        av_log(avctx, AV_LOG_ERROR, "Incorrect compression level %d\n", s->compression_level);
+    if (s->compression_level % 1000 || s->compression_level >= COMPRESSION_LEVEL_INSANE) {
+        av_log(avctx, AV_LOG_ERROR, "Incorrect/Unsupported compression level %d\n", s->compression_level);
         return -1;
     }
     s->fset = s->compression_level / 1000 - 1;
@@ -857,9 +857,9 @@ static int ape_decode_frame(AVCodecContext * avctx,
     emms_c();
 
     if(s->error || s->ptr > s->data_end){
-        s->samples=0;
         av_log(avctx, AV_LOG_ERROR, "Error decoding frame\n");
-        return -1;
+	s->samples = blockstodecode;	s->ptr = s->data_end;
+        //return -1;	// XXX: mhfan
     }
 
     for (i = 0; i < blockstodecode; i++) {
@@ -876,6 +876,10 @@ static int ape_decode_frame(AVCodecContext * avctx,
     return bytes_used;
 }
 
+static void ape_decode_flush(AVCodecContext *avctx) {
+    APEContext* s = avctx->priv_data;	s->samples = 0;
+}
+
 AVCodec ape_decoder = {
     "ape",
     CODEC_TYPE_AUDIO,
@@ -885,6 +889,7 @@ AVCodec ape_decoder = {
     NULL,
     ape_decode_close,
     ape_decode_frame,
+    .flush = ape_decode_flush,	// XXX: mhfan
     .capabilities = CODEC_CAP_SUBFRAMES,
     .long_name = NULL_IF_CONFIG_SMALL("Monkey's Audio"),
 };

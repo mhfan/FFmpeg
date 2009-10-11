@@ -314,6 +314,9 @@ static int ape_read_header(AVFormatContext * s, AVFormatParameters * ap)
     st->duration  = total_blocks / MAC_SUBFRAME_SIZE;
     av_set_pts_info(st, 64, MAC_SUBFRAME_SIZE, ape->samplerate);
 
+    st->codec->bit_rate	       = ape->frames[ape->totalframes - 1].pos * 8 /
+		(s->duration / AV_TIME_BASE);	// XXX: mhfan
+
     st->codec->extradata = av_malloc(APE_EXTRADATA_SIZE);
     st->codec->extradata_size = APE_EXTRADATA_SIZE;
     AV_WL16(st->codec->extradata + 0, ape->fileversion);
@@ -327,6 +330,10 @@ static int ape_read_header(AVFormatContext * s, AVFormatParameters * ap)
         pts += ape->blocksperframe / MAC_SUBFRAME_SIZE;
     }
 
+return 0;
+    av_add_index_entry(st, url_fsize(&s->pb), st->duration,
+	    0, 0, AVINDEX_KEYFRAME);	// XXX: mhfan
+
     return 0;
 }
 
@@ -339,7 +346,7 @@ static int ape_read_packet(AVFormatContext * s, AVPacket * pkt)
 
     if (url_feof(s->pb))
         return AVERROR_IO;
-    if (ape->currentframe > ape->totalframes)
+    if (ape->currentframe > (ape->totalframes - 1))	// mhfan
         return AVERROR_IO;
 
     url_fseek (s->pb, ape->frames[ape->currentframe].pos, SEEK_SET);
@@ -356,6 +363,8 @@ static int ape_read_packet(AVFormatContext * s, AVPacket * pkt)
     AV_WL32(pkt->data    , nblocks);
     AV_WL32(pkt->data + 4, ape->frames[ape->currentframe].skip);
     ret = get_buffer(s->pb, pkt->data + extra_size, ape->frames[ape->currentframe].size);
+
+    if (ret < 1) { av_free_packet(pkt); return AVERROR_IO; }	// XXX: mhfan
 
     pkt->pts = ape->frames[ape->currentframe].pts;
     pkt->stream_index = 0;
@@ -384,8 +393,12 @@ static int ape_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
     APEContext *ape = s->priv_data;
     int index = av_index_search_timestamp(st, timestamp, flags);
 
-    if (index < 0)
+    if (index < 0) {
+	if (1 && 0 < st->nb_index_entries && st->index_entries
+		    [st->nb_index_entries - 1].timestamp < timestamp)
+	     index = st->nb_index_entries - 1; else	// XXX: mhfan
         return -1;
+    }
 
     ape->currentframe = index;
     return 0;
