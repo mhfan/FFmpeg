@@ -162,6 +162,11 @@ typedef struct APEContext {
 
 // TODO: dsputilize
 
+#if ARCH_BFIN
+extern int32_t ff_bfin_scalarproduct(int16_t* v1, int16_t* v2, int16_t* v3,
+	int order, int sign);
+#endif
+
 static av_cold int ape_decode_init(AVCodecContext * avctx)
 {
     APEContext *s = avctx->priv_data;
@@ -186,7 +191,11 @@ static av_cold int ape_decode_init(AVCodecContext * avctx)
     s->flags             = AV_RL16(avctx->extradata + 4);
 
     av_log(avctx, AV_LOG_DEBUG, "Compression Level: %d - Flags: %d\n", s->compression_level, s->flags);
+#if ARCH_BFIN
+    if (s->compression_level % 1000 || s->compression_level > COMPRESSION_LEVEL_INSANE) {
+#else// XXX: mhfan
     if (s->compression_level % 1000 || s->compression_level >= COMPRESSION_LEVEL_INSANE) {
+#endif
         av_log(avctx, AV_LOG_ERROR, "Incorrect/Unsupported compression level %d\n", s->compression_level);
         return -1;
     }
@@ -654,8 +663,16 @@ static void do_apply_filter(APEContext * ctx, int version, APEFilter *f, int32_t
     int absres;
 
     while (count--) {
+#if ARCH_BFIN
+	if (*data < 0) res = 0x10001; else
+	if (*data > 0) res = -1; else res = 0;
+	// combine three functions: scalarproduct, vector_add and verctor_sub
+	res = ff_bfin_scalarproduct(f->delay - order, f->coeffs,
+		f->adaptcoeffs - order, order, res);
+#else// XXX:
         /* round fixedpoint scalar product */
         res = ctx->dsp.scalarproduct_and_madd_int16(f->coeffs, f->delay - order, f->adaptcoeffs - order, order, APESIGN(*data));
+#endif
         res = (res + (1 << (fracbits - 1))) >> fracbits;
         res += *data;
         *data++ = res;
