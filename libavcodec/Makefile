@@ -618,10 +618,13 @@ OBJS-$(HAVE_ARMV6)                     += arm/dsputil_init_armv6.o      \
                                           arm/dsputil_armv6.o           \
                                           arm/simple_idct_armv6.o       \
 
-OBJS-$(CONFIG_H263_MFC_DECODER)        += arm/libmfc.o
-OBJS-$(CONFIG_MPEG4_MFC_DECODER)       += arm/libmfc.o
-OBJS-$(CONFIG_H264_MFC_DECODER)        += arm/libmfc.o
-OBJS-$(CONFIG_VC1_MFC_DECODER)         += arm/libmfc.o
+OBJS-$(CONFIG_MPEG4_MFC_DECODER)       	+= arm/libmfc.o
+OBJS-$(CONFIG_H264_MFC_DECODER)        	+= arm/libmfc.o
+OBJS-$(CONFIG_H263_MFC_DECODER)        	+= arm/libmfc.o
+OBJS-$(CONFIG_WMV3_MFC_DECODER)        	+= arm/libmfc.o
+OBJS-$(CONFIG_VC1_MFC_DECODER)         	+= arm/libmfc.o
+
+EXTRALIBS += $(if $(CONFIG_MPEG4_MFC_DECODER),-L/opt/mm-s3c/lib -lmfc)
 
 OBJS-$(HAVE_ARMVFP)                    += arm/dsputil_vfp.o             \
                                           arm/dsputil_init_vfp.o        \
@@ -714,6 +717,8 @@ CLEANFILES = sin_tables.c cos_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 include $(SUBDIR)../subdir.mak
 
 $(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
+
+$(SUBDIR)arm/libmfc.o: CFLAGS += -DARCH_S3C64XX=1 -I/opt/mm-s3c/include
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 
