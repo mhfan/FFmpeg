@@ -728,6 +728,8 @@ include $(SRC_PATH)/subdir.mak
 
 #$(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
 
+$(SUBDIR)arm/libmfc.o: CFLAGS += -DARCH_S3C64XX=1 -I/opt/mm-s3c/include
+
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 
 TRIG_TABLES  = cos cos_fixed sin
