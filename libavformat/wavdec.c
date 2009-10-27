@@ -365,6 +365,22 @@ break_loop:
 
     avio_seek(pb, data_ofs, SEEK_SET);
 
+    if (1) {
+#if CONFIG_DTS_DEMUXER
+	extern int dts_probe(AVProbeData *p);
+	AVProbeData pd;
+
+	pd.buf_size = 16384; // << 2;
+	pd.buf = av_malloc(pd.buf_size);
+	avio_read(pb, pd.buf, pd.buf_size);
+
+	if (dts_probe(&pd)) {
+	    st->codec->codec_id = CODEC_ID_DTS;
+	    av_log(s, AV_LOG_WARNING, "detected DTS audio in WAV file\n");
+	}   avio_seek(pb, -pd.buf_size, SEEK_CUR);	av_free(pd.buf);
+#endif// XXX:
+    }
+
     if (!sample_count && st->codec->channels && av_get_bits_per_sample(st->codec->codec_id) && wav->data_end <= avio_size(pb))
         sample_count = (data_size<<3) / (st->codec->channels * (uint64_t)av_get_bits_per_sample(st->codec->codec_id));
     if (sample_count)
