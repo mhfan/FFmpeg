@@ -520,12 +520,11 @@ static int h261_probe(AVProbeData *p)
 }
 #endif
 
-#if CONFIG_DTS_DEMUXER
 #define DCA_MARKER_14B_BE 0x1FFFE800
 #define DCA_MARKER_14B_LE 0xFF1F00E8
 #define DCA_MARKER_RAW_BE 0x7FFE8001
 #define DCA_MARKER_RAW_LE 0xFE7F0180
-static int dts_probe(AVProbeData *p)
+int dts_probe(AVProbeData *p)
 {
     const uint8_t *buf, *bufp;
     uint32_t state = -1;
@@ -561,7 +560,6 @@ static int dts_probe(AVProbeData *p)
 
     return 0;
 }
-#endif
 
 #if CONFIG_DIRAC_DEMUXER
 static int dirac_probe(AVProbeData *p)

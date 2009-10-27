@@ -228,6 +228,19 @@ static int wav_read_header(AVFormatContext *s,
     if (size < 0)
         return -1;
     wav->data_end= url_ftell(pb) + size;
+    if (1 || CONFIG_DTS_DEMUXER) {	// XXX:
+	AVProbeData pd;
+	extern int dts_probe(AVProbeData *p);
+
+	pd.buf_size = 16384; // << 2;
+	pd.buf = av_malloc(pd.buf_size);
+	get_buffer(pb, pd.buf, pd.buf_size);
+
+	if (dts_probe(&pd)) {
+	    st->codec->codec_id = CODEC_ID_DTS;
+	    av_log(s, AV_LOG_WARNING, "detected DTS audio in WAV file\n");
+	}   url_fseek(pb, -pd.buf_size, SEEK_CUR);	av_free(pd.buf);
+    }
     return 0;
 }
 
