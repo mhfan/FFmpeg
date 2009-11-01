@@ -1244,7 +1244,7 @@ static int dca_decode_frame(AVCodecContext * avctx,
         } else
             s->channel_order_tab = dca_channel_reorder_nolfe[s->amode];
 
-        if(avctx->request_channels == 2 && s->prim_channels > 2) {
+        if(avctx->channels == 2 && s->prim_channels > 2) {
             channels = 2;
             s->output = DCA_STEREO;
             avctx->channel_layout = CH_LAYOUT_STEREO;
@@ -1260,7 +1260,7 @@ static int dca_decode_frame(AVCodecContext * avctx,
        unset. Ideally during the first probe for channels the crc should be checked
        and only set avctx->channels when the crc is ok. Right now the decoder could
        set the channels based on a broken first frame.*/
-    if (!avctx->channels)
+    //if (!avctx->channels)	// XXX:
         avctx->channels = channels;
 
     if(*data_size < (s->sample_blocks / 8) * 256 * sizeof(int16_t) * channels)
@@ -1275,7 +1275,38 @@ static int dca_decode_frame(AVCodecContext * avctx,
     return buf_size;
 }
 
+/***
+ * When downmix multi-channel to 2channels, the scale & bias will be
+ * broken  by dca_downmix() routine. To fix this bug, I did following
+ * changes:
+ *
+ * 1. Changed s->add_bias from 385.0f to 0.0f;
+ * 2. Changed s->scale_bias from (1.0/32768.0) to 1.0f;
+ * 3. Added dca_float_to_int16_interleave & dca_float_to_int16_one;
+ *
+ * Modified on 2009-11-12
+ * By Roger Li
+ */
+static inline int dca_float_to_int16_one(const float *src)
+{
+    return (int)(*src+0.5);
+}
 
+static void dca_float_to_int16_interleave(int16_t *dst, const float **src,
+	long len, int channels)
+{
+    int i,j,c;
+    if (channels==2) {
+	for (i=0; i<len; i++) {
+	    dst[2*i]   = dca_float_to_int16_one(src[0]+i);
+	    dst[2*i+1] = dca_float_to_int16_one(src[1]+i);
+	}
+    } else {
+	for (c=0; c<channels; c++)
+	    for (i=0, j=c; i<len; i++, j+=channels)
+		dst[j] = dca_float_to_int16_one(src[c]+i);
+    }
+}
 
 /**
  * DCA initialization
@@ -1298,20 +1329,16 @@ static av_cold int dca_decode_init(AVCodecContext * avctx)
         s->samples_chanptr[i] = s->samples + i * 256;
     avctx->sample_fmt = SAMPLE_FMT_S16;
 
-    if(s->dsp.float_to_int16_interleave == ff_float_to_int16_interleave_c) {
-        s->add_bias = 385.0f;
-        s->scale_bias = 1.0 / 32768.0;
-    } else {
-        s->add_bias = 0.0f;
-        s->scale_bias = 1.0;
+    s->add_bias = 0.0f;
+    s->scale_bias = 1.0;	// XXX: modified by Roger
+    if (s->dsp.float_to_int16_interleave == ff_float_to_int16_interleave_c)
+	s->dsp.float_to_int16_interleave = dca_float_to_int16_interleave;
 
-        /* allow downmixing to stereo */
-        if (avctx->channels > 0 && avctx->request_channels < avctx->channels &&
-                avctx->request_channels == 2) {
-            avctx->channels = avctx->request_channels;
-        }
-    }
-
+    /* allow downmixing to stereo */
+    if (avctx->channels > 0 &&
+	avctx->request_channels < avctx->channels &&
+	avctx->request_channels == 2)
+	avctx->channels = avctx->request_channels;
 
     return 0;
 }
