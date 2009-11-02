@@ -767,7 +767,7 @@ ff_rm_parse_packet (AVFormatContext *s, ByteIOContext *pb,
 
              ast->sub_packet_cnt = 0;
              rm->audio_stream_num = st->index;
-             rm->audio_pkt_cnt = h * w / st->codec->block_align;
+             rm->audio_pkt_cnt = 1; //h * w / st->codec->block_align;
         } else if (st->codec->codec_id == CODEC_ID_AAC) {
             int x;
             rm->audio_stream_num = st->index;
@@ -819,10 +819,15 @@ ff_rm_retrieve_cache (AVFormatContext *s, ByteIOContext *pb,
     if (st->codec->codec_id == CODEC_ID_AAC)
         av_get_packet(pb, pkt, ast->sub_packet_lengths[ast->sub_packet_cnt - rm->audio_pkt_cnt]);
     else {
+#if 0
         av_new_packet(pkt, st->codec->block_align);
         memcpy(pkt->data, ast->pkt.data + st->codec->block_align * //FIXME avoid this
                (ast->sub_packet_h * ast->audio_framesize / st->codec->block_align - rm->audio_pkt_cnt),
                st->codec->block_align);
+#else// XXX: mhfan
+	*pkt = ast->pkt;
+	av_new_packet(&ast->pkt, ast->pkt.size);
+#endif
     }
     rm->audio_pkt_cnt--;
     if ((pkt->pts = ast->audiotimestamp) != AV_NOPTS_VALUE) {
