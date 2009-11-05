@@ -311,9 +311,9 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, AVIOContext *pb,
             return -1;
     } else {
         int fps;
-        if (avio_rl32(pb) != MKTAG('V', 'I', 'D', 'O')) {
+        if ((v = avio_rl32(pb)) != MKTAG('V', 'I', 'D', 'O')) {
         fail1:
-            av_log(st->codec, AV_LOG_ERROR, "Unsupported video codec\n");
+            av_log(st->codec, AV_LOG_ERROR, "Unsupported video codec: %x\n", v);
             goto skip;
         }
         st->codec->codec_tag = avio_rl32(pb);
@@ -330,13 +330,28 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, AVIOContext *pb,
         st->need_parsing = AVSTREAM_PARSE_TIMESTAMPS;
         fps = avio_rb32(pb);
 
-        if ((ret = rm_read_extradata(pb, st->codec, codec_data_size - (avio_tell(pb) - codec_pos))) < 0)
-            return ret;
-
         av_reduce(&st->codec->time_base.num, &st->codec->time_base.den,
                   0x10000, fps, (1 << 30) - 1);
         st->avg_frame_rate.num = st->codec->time_base.den;
         st->avg_frame_rate.den = st->codec->time_base.num;
+
+        if ((ret = rm_read_extradata(pb, st->codec, codec_data_size - (avio_tell(pb) - codec_pos))) < 0)
+            return ret;
+
+	v = st->codec->extradata[4];
+
+	switch (v >> 4) {
+	case 1: st->codec->codec_id = CODEC_ID_RV10; break;
+	case 2: st->codec->codec_id = CODEC_ID_RV20; break;
+	case 3: st->codec->codec_id = CODEC_ID_RV30; break;
+	case 4: st->codec->codec_id = CODEC_ID_RV40; break;
+	default:
+	    av_log(st->codec, AV_LOG_ERROR, "extra:%02X %02X %02X %02X %02X\n",
+		    st->codec->extradata[0], st->codec->extradata[1],
+		    st->codec->extradata[2], st->codec->extradata[3],
+		    st->codec->extradata[4]);
+	    goto fail1;
+        }
     }
 
 skip:
@@ -614,7 +629,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, AVIOContext *pb,
         len2 = get_num(pb, &len);
         pos  = get_num(pb, &len);
         pic_num = avio_r8(pb); len--;
-    }
+    }	else pic_num = seq;
     if(len<0)
         return -1;
     rm->remaining_len = len;
@@ -628,6 +643,8 @@ static int rm_assemble_video_frame(AVFormatContext *s, AVIOContext *pb,
         rm->remaining_len -= len;
         if(av_new_packet(pkt, len + 9) < 0)
             return AVERROR(EIO);
+	vst->cur_slice = vst->slices = 1;
+	vst->curpic_num = pic_num;
         pkt->data[0] = 0;
         AV_WL32(pkt->data + 1, 1);
         AV_WL32(pkt->data + 5, 0);
@@ -638,7 +655,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, AVIOContext *pb,
 
     *pseq = seq;
     if((seq & 0x7F) == 1 || vst->curpic_num != pic_num){
-        vst->slices = ((hdr & 0x3F) << 1) + 1;
+        vst->slices = ((hdr & 0x3F) << 1) + (seq >> 7);
         vst->videobufsize = len2 + 8*vst->slices + 1;
         av_free_packet(&vst->pkt); //FIXME this should be output.
         if(av_new_packet(&vst->pkt, vst->videobufsize) < 0)
@@ -673,7 +690,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, AVIOContext *pb,
         pkt->size = vst->videobufpos + 8*(vst->cur_slice - vst->slices);
         pkt->pts = AV_NOPTS_VALUE;
         pkt->pos = vst->pktpos;
-        vst->slices = 0;
+	//vst->slices = 0;
         return 0;
     }
 
