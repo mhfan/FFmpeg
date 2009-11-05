@@ -301,33 +301,28 @@ ff_rm_read_mdpr_codecdata (AVFormatContext *s, ByteIOContext *pb,
         if (rm_read_audio_stream_info(s, pb, st, rst, 0))
             return -1;
     } else {
-        int fps, fps2;
-        if (get_le32(pb) != MKTAG('V', 'I', 'D', 'O')) {
+        if ((v = get_le32(pb)) != MKTAG('V', 'I', 'D', 'O')) {
         fail1:
-            av_log(st->codec, AV_LOG_ERROR, "Unsupported video codec\n");
+            av_log(st->codec, AV_LOG_ERROR, "Unsupported video codec: %x\n", v);
             goto skip;
         }
         st->codec->codec_tag = get_le32(pb);
+        st->codec->codec_type= CODEC_TYPE_VIDEO;
         st->codec->codec_id  = ff_codec_get_id(rm_codec_tags, st->codec->codec_tag);
 //        av_log(s, AV_LOG_DEBUG, "%X %X\n", st->codec->codec_tag, MKTAG('R', 'V', '2', '0'));
         if (st->codec->codec_id == CODEC_ID_NONE)
             goto fail1;
-        st->codec->width = get_be16(pb);
+        st->codec->width  = get_be16(pb);
         st->codec->height = get_be16(pb);
-        st->codec->time_base.num= 1;
-        fps= get_be16(pb);
-        st->codec->codec_type = CODEC_TYPE_VIDEO;
-        get_be32(pb);
-        fps2= get_be16(pb);
-        get_be16(pb);
+	url_fskip(pb, 6);	// XXX:
+	st->codec->time_base.den = get_be32(pb);
+	st->codec->time_base.num = 1 << 16;
 
         if ((ret = rm_read_extradata(pb, st->codec, codec_data_size - (url_ftell(pb) - codec_pos))) < 0)
             return ret;
 
-//        av_log(s, AV_LOG_DEBUG, "fps= %d fps2= %d\n", fps, fps2);
-        st->codec->time_base.den = fps * st->codec->time_base.num;
-        //XXX: do we really need that?
-        switch(st->codec->extradata[4]>>4){
+	v = st->codec->extradata[4];
+        switch (v >> 4) {
         case 1: st->codec->codec_id = CODEC_ID_RV10; break;
         case 2: st->codec->codec_id = CODEC_ID_RV20; break;
         case 3: st->codec->codec_id = CODEC_ID_RV30; break;
@@ -613,7 +608,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, ByteIOContext *pb,
         len2 = get_num(pb, &len);
         pos  = get_num(pb, &len);
         pic_num = get_byte(pb); len--;
-    }
+    }	else pic_num = seq;
     if(len<0)
         return -1;
     rm->remaining_len = len;
@@ -625,6 +620,8 @@ static int rm_assemble_video_frame(AVFormatContext *s, ByteIOContext *pb,
         rm->remaining_len -= len;
         if(av_new_packet(pkt, len + 9) < 0)
             return AVERROR(EIO);
+	vst->cur_slice = vst->slices = 1;
+	vst->curpic_num = pic_num;
         pkt->data[0] = 0;
         AV_WL32(pkt->data + 1, 1);
         AV_WL32(pkt->data + 5, 0);
@@ -635,7 +632,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, ByteIOContext *pb,
 
     *pseq = seq;
     if((seq & 0x7F) == 1 || vst->curpic_num != pic_num){
-        vst->slices = ((hdr & 0x3F) << 1) + 1;
+        vst->slices = ((hdr & 0x3F) << 1) + (seq >> 7);
         vst->videobufsize = len2 + 8*vst->slices + 1;
         av_free_packet(&vst->pkt); //FIXME this should be output.
         if(av_new_packet(&vst->pkt, vst->videobufsize) < 0)
@@ -670,7 +667,7 @@ static int rm_assemble_video_frame(AVFormatContext *s, ByteIOContext *pb,
         pkt->size = vst->videobufpos + 8*(vst->cur_slice - vst->slices);
         pkt->pts = AV_NOPTS_VALUE;
         pkt->pos = vst->pktpos;
-        vst->slices = 0;
+	//vst->slices = 0;
         return 0;
     }
 
