@@ -950,6 +950,7 @@ static void matroska_fix_ass_packet(MatroskaDemuxContext *matroska,
                                     AVPacket *pkt, uint64_t display_duration)
 {
     char *line, *layer, *ptr = pkt->data, *end = ptr+pkt->size;
+    pkt->duration = display_duration;	return;	    // XXX:
     for (; *ptr!=',' && ptr<end-1; ptr++);
     if (*ptr == ',')
         layer = ++ptr;
