@@ -1498,6 +1498,8 @@ typedef struct AVFrame {
      * - decoding: set by libavcodec, read by user.
      */
     int pkt_size;
+
+    unsigned clock_timestamp;
 } AVFrame;
 
 /**

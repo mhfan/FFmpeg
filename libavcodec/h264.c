@@ -4309,6 +4309,7 @@ static int decode_frame(AVCodecContext *avctx, void *data,
         if (out) {
             *got_frame = 1;
             *pict      = out->f;
+	    pict->clock_timestamp = h->clock_timestamp;
         }
 
         return buf_index;
@@ -4366,6 +4367,7 @@ not_extra:
         if (h->next_output_pic && (h->next_output_pic->sync || h->sync>1)) {
             *got_frame = 1;
             *pict      = h->next_output_pic->f;
+	    pict->clock_timestamp = h->clock_timestamp;
         }
     }
 

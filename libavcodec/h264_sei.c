@@ -62,6 +62,7 @@ static int decode_picture_timing(H264Context *h){
 
         for (i = 0 ; i < num_clock_ts ; i++){
             if(get_bits(&s->gb, 1)){                  /* clock_timestamp_flag */
+		unsigned char ss, mm, hh;
                 unsigned int full_timestamp_flag;
                 h->sei_ct_type |= 1<<get_bits(&s->gb, 2);
                 skip_bits(&s->gb, 1);                 /* nuit_field_based_flag */
@@ -71,21 +72,22 @@ static int decode_picture_timing(H264Context *h){
                 skip_bits(&s->gb, 1);                 /* cnt_dropped_flag */
                 skip_bits(&s->gb, 8);                 /* n_frames */
                 if(full_timestamp_flag){
-                    skip_bits(&s->gb, 6);             /* seconds_value 0..59 */
-                    skip_bits(&s->gb, 6);             /* minutes_value 0..59 */
-                    skip_bits(&s->gb, 5);             /* hours_value 0..23 */
+                    ss = get_bits(&s->gb, 6);         /* seconds_value 0..59 */
+                    mm = get_bits(&s->gb, 6);         /* minutes_value 0..59 */
+                    hh = get_bits(&s->gb, 5);         /* hours_value 0..23 */
                 }else{
                     if(get_bits(&s->gb, 1)){          /* seconds_flag */
-                        skip_bits(&s->gb, 6);         /* seconds_value range 0..59 */
+                        ss = get_bits(&s->gb, 6);     /* seconds_value range 0..59 */
                         if(get_bits(&s->gb, 1)){      /* minutes_flag */
-                            skip_bits(&s->gb, 6);     /* minutes_value 0..59 */
+                            mm = get_bits(&s->gb, 6); /* minutes_value 0..59 */
                             if(get_bits(&s->gb, 1))   /* hours_flag */
-                                skip_bits(&s->gb, 5); /* hours_value 0..23 */
+                                hh = get_bits(&s->gb, 5); /* hours_value 0..23 */
                         }
                     }
                 }
                 if(h->sps.time_offset_length > 0)
                     skip_bits(&s->gb, h->sps.time_offset_length); /* time_offset */
+		//h->clock_timestamp = (hh << 24) | (mm << 16) | (ss << 8);
             }
         }
 
@@ -136,6 +138,10 @@ static int decode_unregistered_user_data(H264Context *h, int size){
     MpegEncContext * const s = &h->s;
     uint8_t user_data[16+256];
     int e, build, i;
+
+    if (size == 4) {	// XXX:
+	h->clock_timestamp = get_bits_long(&s->gb, 32);		return 0;
+    }
 
     if(size<16)
         return -1;

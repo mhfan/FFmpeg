@@ -604,6 +604,8 @@ typedef struct H264Context {
     uint8_t parse_history[4];
     int parse_history_count;
     int parse_last_mb;
+
+    unsigned clock_timestamp;	// XXX:
 } H264Context;
 
 extern const uint8_t ff_h264_chroma_qp[7][QP_MAX_NUM + 1]; ///< One chroma qp table for each possible bit depth (8-14).
