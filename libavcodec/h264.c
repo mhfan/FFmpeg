@@ -3962,6 +3962,7 @@ static int decode_frame(AVCodecContext *avctx,
         if(out){
             *data_size = sizeof(AVFrame);
             *pict= *(AVFrame*)out;
+	    pict->clock_timestamp = h->clock_timestamp;
         }
 
         return 0;
@@ -3996,6 +3997,7 @@ static int decode_frame(AVCodecContext *avctx,
             if(h->sync>1 || h->next_output_pic->f.pict_type != AV_PICTURE_TYPE_B){
                 *data_size = sizeof(AVFrame);
                 *pict = *(AVFrame*)h->next_output_pic;
+		pict->clock_timestamp = h->clock_timestamp;
             }
         }
     }

@@ -1181,6 +1181,7 @@ typedef struct AVFrame {
      */
     int format;
 
+    unsigned clock_timestamp;
 } AVFrame;
 
 /**
