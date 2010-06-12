@@ -69,6 +69,8 @@ else ifeq ($(DEB_HOST_ARCH),sparc)
     nooptflags += --disable-vis
 endif
 
+FLAVORS := shared
+
 $(info Building FLAVORS=$(FLAVORS))
 
 define cond_enable

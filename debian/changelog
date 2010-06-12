@@ -1,3 +1,9 @@
+libav (5:0.7git) unstable; urgency=low
+
+  * ...
+
+ -- MeiHui FAN <mhfan@ustc.edu>  Sun, 13 Jun 2010 00:05:32 +0800
+
 libav (4:0.7~beta2-2) experimental; urgency=low
 
   * refresh patches

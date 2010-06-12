@@ -56,49 +56,49 @@ Description: Multimedia player, server, encoder and transcoder
  file formats (AVI, MPEG, OGG, Matroska, ASF...) and encoding formats (MPEG,
  DivX, MPEG4, AC3, DV...).
 
-Package: ffmpeg-dbg
-Section: debug
-Priority: extra
-Architecture: any
-Depends: libav-dbg,
- ${misc:Depends}
-Description: Debug symbols for Libav related packages
- This package contains debug data of the Libav related shared libraries.
- .
- Most people will not need this package. Please install it to produce useful
- stacktraces to help debugging the Libav libraries.
- .
- This package is only used for transitional purposes and can be safely
- removed.
-
-Package: libav-dbg
-Section: debug
-Priority: extra
-Architecture: any
-Depends: libavutil51 (= ${binary:Version}),
- libavcodec53 (= ${binary:Version}),
- libavdevice53 (= ${binary:Version}),
- libpostproc52 (= ${binary:Version}),
- libavformat53 (= ${binary:Version}),
- libswscale1 (= ${binary:Version}),
- ffmpeg (= ${binary:Version}),
- ${misc:Depends}
-Description: Debug symbols for Libav related packages
- This package contains debug data of the Libav related shared libraries.
- .
- Most people will not need this package. Please install it to produce useful
- stacktraces to help debugging the Libav library.
-
-Package: libav-source
-Architecture: all
-Section: devel
-Depends: ${misc:Depends}
-Description: Patched Libav sources
- This package contains a tarball the source file that were used to produce
- this package, containing all modifications that have been applied inline.
- .
- This package is used as build-dependency for 'libav-extra', which provides
- the "extra" variants of libav.
+#Package: ffmpeg-dbg
+#Section: debug
+#Priority: extra
+#Architecture: any
+#Depends: libav-dbg,
+# ${misc:Depends}
+#Description: Debug symbols for Libav related packages
+# This package contains debug data of the Libav related shared libraries.
+# .
+# Most people will not need this package. Please install it to produce useful
+# stacktraces to help debugging the Libav libraries.
+# .
+# This package is only used for transitional purposes and can be safely
+# removed.
+#
+#Package: libav-dbg
+#Section: debug
+#Priority: extra
+#Architecture: any
+#Depends: libavutil51 (= ${binary:Version}),
+# libavcodec53 (= ${binary:Version}),
+# libavdevice53 (= ${binary:Version}),
+# libpostproc52 (= ${binary:Version}),
+# libavformat53 (= ${binary:Version}),
+# libswscale1 (= ${binary:Version}),
+# ffmpeg (= ${binary:Version}),
+# ${misc:Depends}
+#Description: Debug symbols for Libav related packages
+# This package contains debug data of the Libav related shared libraries.
+# .
+# Most people will not need this package. Please install it to produce useful
+# stacktraces to help debugging the Libav library.
+#
+#Package: libav-source
+#Architecture: all
+#Section: devel
+#Depends: ${misc:Depends}
+#Description: Patched Libav sources
+# This package contains a tarball the source file that were used to produce
+# this package, containing all modifications that have been applied inline.
+# .
+# This package is used as build-dependency for 'libav-extra', which provides
+# the "extra" variants of libav.
 
 Package: ffmpeg-doc
 Section: doc
@@ -131,6 +131,8 @@ Depends: ${shlibs:Depends},
 Description: Libav utility library
  This is the common utility library from Libav. It contains shared code
  used by all other Libav libraries.
+Replaces: libavutil50 (>= 4:0.6), libavutil49 (>= 4:0.5.1-1)
+Provides: libavutil50 (= 4:0.6.3), libavutil49 (= 4:0.5.3)
 
 Package: libavcodec53
 Architecture: any
@@ -164,6 +166,7 @@ Depends: ${shlibs:Depends},
  ${misc:Depends}
 Description: Libav video filtering library
  This is the video filtering library from Libav.
+Replaces: libavfilter1 (>> 5:0.6)
 
 Package: libpostproc52
 Architecture: any
@@ -171,6 +174,8 @@ Depends: ${shlibs:Depends},
  ${misc:Depends}
 Description: Libav video postprocessing library
  This is the video postprocessing library from Libav.
+Replaces: libpostproc51 (>= 4:0.6)
+Provides: libpostproc51 (= 4:0.6.3)
 
 Package: libswscale1
 Architecture: any
@@ -178,6 +183,8 @@ Depends: ${shlibs:Depends},
  ${misc:Depends}
 Description: Libav video scaling library
  This is the video software scaling library from Libav.
+Replaces: libswscale0 (>= 4:0.6)
+Provides: libswscale0 (= 4:0.6.3)
 
 Package: libavutil-dev
 Section: libdevel
