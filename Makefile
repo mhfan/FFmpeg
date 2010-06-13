@@ -53,6 +53,11 @@ FF_DEP_LIBS  := $(DEP_LIBS)
 
 all: $(PROGS)
 
+cscope:
+	ls *.[chS] > cscope.files; \
+	find $(addprefix lib,$(ALLFFLIBS)) -name '*.[chS]' -print >> \
+		cscope.files; 	cscope -bqk
+
 $(PROGS): %$(EXESUF): %_g$(EXESUF)
 	$(CP) $< $@
 	$(STRIP) $@
