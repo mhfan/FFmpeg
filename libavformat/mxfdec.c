@@ -531,8 +531,8 @@ static int mxf_read_source_clip(void *arg, AVIOContext *pb, int tag, int size, U
         break;
     case 0x1101:
         /* UMID, only get last 16 bytes */
-        avio_skip(pb, 16);
         avio_read(pb, source_clip->source_package_uid, 16);
+        avio_skip(pb, 16);	// XXX:
         break;
     case 0x1102:
         source_clip->source_track_id = avio_rb32(pb);
@@ -620,8 +620,8 @@ static int mxf_read_source_package(void *arg, AVIOContext *pb, int tag, int size
         break;
     case 0x4401:
         /* UMID, only get last 16 bytes */
-        avio_skip(pb, 16);
         avio_read(pb, package->package_uid, 16);
+        avio_skip(pb, 16);	// XXX:
         break;
     case 0x4701:
         avio_read(pb, package->descriptor_ref, 16);
@@ -805,6 +805,7 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
         AVStream *st;
 
         if (!(material_track = mxf_resolve_strong_ref(mxf, &material_package->tracks_refs[i], Track))) {
+	    //dprintp((uint8_t*)&material_package->tracks_refs[i], 16);
             av_log(mxf->fc, AV_LOG_ERROR, "could not resolve material track strong ref\n");
             continue;
         }
@@ -930,6 +931,8 @@ static int mxf_parse_structural_metadata(MXFContext *mxf)
             container_ul = mxf_get_codec_ul(mxf_essence_container_uls, essence_container_ul);
             if (st->codec->codec_id == CODEC_ID_NONE)
                 st->codec->codec_id = container_ul->id;
+	    if (st->codec->codec_id == CODEC_ID_MPEG2VIDEO)
+                st->codec->codec_id = CODEC_ID_MP2;	// XXX:
             st->codec->channels = descriptor->channels;
             st->codec->bits_per_coded_sample = descriptor->bits_per_sample;
             st->codec->sample_rate = descriptor->sample_rate.num / descriptor->sample_rate.den;
@@ -980,6 +983,7 @@ static const MXFMetadataReadTableEntry mxf_metadata_read_table[] = {
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x51,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* MPEG 2 Video */
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x48,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* Wave */
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x47,0x00 }, mxf_read_generic_descriptor, sizeof(MXFDescriptor), Descriptor }, /* AES3 */
+    { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x39,0x00 }, mxf_read_track, sizeof(MXFTrack), Track }, /* Event Track */
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x3A,0x00 }, mxf_read_track, sizeof(MXFTrack), Track }, /* Static Track */
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x01,0x01,0x01,0x01,0x3B,0x00 }, mxf_read_track, sizeof(MXFTrack), Track }, /* Generic Track */
     { { 0x06,0x0E,0x2B,0x34,0x02,0x53,0x01,0x01,0x0d,0x01,0x04,0x01,0x02,0x02,0x00,0x00 }, mxf_read_cryptographic_context, sizeof(MXFCryptoContext), CryptoContext },
@@ -1033,6 +1037,7 @@ static int mxf_read_header(AVFormatContext *s, AVFormatParameters *ap)
     MXFContext *mxf = s->priv_data;
     KLVPacket klv;
 
+//av_log_set_level(AV_LOG_DEBUG);	//s->debug |= FF_FDEBUG_TS;
     if (!mxf_read_sync(s->pb, mxf_header_partition_pack_key, 14)) {
         av_log(s, AV_LOG_ERROR, "could not find header partition pack key\n");
         return -1;
