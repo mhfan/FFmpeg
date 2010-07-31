@@ -2028,7 +2028,7 @@ static int transcode_init(void)
             codec->chroma_sample_location = icodec->chroma_sample_location;
         }
 
-        if (ost->stream_copy) {
+CPS:    if (ost->stream_copy) {
             uint64_t extra_size;
 
             av_assert0(ist && !ost->filter);
@@ -2038,6 +2038,8 @@ static int transcode_init(void)
             if (extra_size > INT_MAX) {
                 return AVERROR(EINVAL);
             }
+
+	    ist->decoding_needed = ost->encoding_needed = 0;
 
             /* if stream_copy is selected, no need to decode or encode */
             codec->codec_id   = icodec->codec_id;
@@ -2238,6 +2240,11 @@ static int transcode_init(void)
                 abort();
                 break;
             }
+
+	    if (codec->codec_id == icodec->codec_id && !ost->filter) {
+		ost->st->stream_copy = 1;	goto CPS;   // XXX:
+	    }
+
             /* two pass mode */
             if (codec->flags & (CODEC_FLAG_PASS1 | CODEC_FLAG_PASS2)) {
                 char logfilename[1024];
@@ -2402,11 +2409,11 @@ static int transcode_init(void)
             continue;
         }
 
-        av_log(NULL, AV_LOG_INFO, "  Stream #%d:%d -> #%d:%d",
+        av_log(NULL, AV_LOG_INFO, "  Stream #%d:%d -> #%d:%d (%s)",
                input_streams[ost->source_index]->file_index,
                input_streams[ost->source_index]->st->index,
-               ost->file_index,
-               ost->index);
+               ost->file_index, ost->index,
+	    ost->st->stream_copy ? "copying" : "dec-enc");
         if (ost->sync_ist != input_streams[ost->source_index])
             av_log(NULL, AV_LOG_INFO, " [sync #%d:%d]",
                    ost->sync_ist->file_index,
