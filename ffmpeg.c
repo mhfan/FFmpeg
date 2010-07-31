@@ -2062,12 +2062,14 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
         codec->bits_per_raw_sample= icodec->bits_per_raw_sample;
         codec->chroma_sample_location = icodec->chroma_sample_location;
 
-        if (ost->st->stream_copy) {
+CPS:	if (ost->st->stream_copy) {
             uint64_t extra_size = (uint64_t)icodec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE;
 
             if (extra_size > INT_MAX) {
                 return AVERROR(EINVAL);
             }
+
+	    ist->decoding_needed = ost->encoding_needed = 0;
 
             /* if stream_copy is selected, no need to decode or encode */
             codec->codec_id = icodec->codec_id;
@@ -2153,10 +2155,6 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
             ost->encoding_needed = 1;
             switch(codec->codec_type) {
             case AVMEDIA_TYPE_AUDIO:
-                ost->fifo= av_fifo_alloc(1024);
-                if (!ost->fifo) {
-                    return AVERROR(ENOMEM);
-                }
                 if (!codec->sample_rate) {
                     codec->sample_rate = icodec->sample_rate;
                 }
@@ -2174,6 +2172,18 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
                 ost->audio_resample = codec->sample_rate != icodec->sample_rate || audio_sync_method > 1;
                 ost->audio_resample |=    codec->sample_fmt     != icodec->sample_fmt
                                        || codec->channel_layout != icodec->channel_layout;
+
+		if (codec->codec_id == icodec->codec_id &&
+		    //codec->channels == icodec->request_channels &&
+			!ost->audio_resample && 1) {
+		    ost->st->stream_copy = 1;	goto CPS;
+		}
+
+                ost->fifo= av_fifo_alloc(1024);
+                if (!ost->fifo) {
+                    return AVERROR(ENOMEM);
+                }
+
                 icodec->request_channels = codec->channels;
                 ost->resample_sample_fmt  = icodec->sample_fmt;
                 ost->resample_sample_rate = icodec->sample_rate;
@@ -2197,6 +2207,12 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
                 ost->video_resample = codec->width   != icodec->width  ||
                                       codec->height  != icodec->height ||
                                       codec->pix_fmt != icodec->pix_fmt;
+
+		if (codec->codec_id == icodec->codec_id &&
+			!ost->video_resample && 1) {
+		    ost->st->stream_copy = 1;	goto CPS;
+		}
+
                 if (ost->video_resample) {
                     codec->bits_per_raw_sample= frame_bits_per_raw_sample;
                 }
@@ -2230,6 +2246,11 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
 #endif
                 break;
             case AVMEDIA_TYPE_SUBTITLE:
+
+		if (codec->codec_id == icodec->codec_id && 1) {
+		    ost->st->stream_copy = 1;	goto CPS;
+		}
+
                 break;
             default:
                 abort();
@@ -2364,11 +2385,11 @@ static int transcode_init(OutputFile *output_files, int nb_output_files,
     av_log(NULL, AV_LOG_INFO, "Stream mapping:\n");
     for (i = 0; i < nb_output_streams; i++) {
         ost = &output_streams[i];
-        av_log(NULL, AV_LOG_INFO, "  Stream #%d.%d -> #%d.%d",
+        av_log(NULL, AV_LOG_INFO, "  Stream #%d.%d -> #%d.%d (%s)",
                input_streams[ost->source_index].file_index,
                input_streams[ost->source_index].st->index,
-               ost->file_index,
-               ost->index);
+               ost->file_index, ost->index,
+	    ost->st->stream_copy ? "copying" : "dec-enc");
         if (ost->sync_ist != &input_streams[ost->source_index])
             av_log(NULL, AV_LOG_INFO, " [sync #%d.%d]",
                    ost->sync_ist->file_index,
