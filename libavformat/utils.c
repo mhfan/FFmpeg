@@ -1179,7 +1179,9 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
             /* DTS = decompression timestamp */
             /* PTS = presentation timestamp */
             if (pkt->dts == AV_NOPTS_VALUE)
-                pkt->dts = st->last_IP_pts;
+                pkt->dts = st->last_IP_pts; else	// XXX:
+		// && st->codec->codec_id == CODEC_ID_MPEG2VIDEO
+            if (pkt->pts == AV_NOPTS_VALUE) pkt->pts = pkt->dts + 1;
             update_initial_timestamps(s, pkt->stream_index, pkt->dts, pkt->pts, pkt);
             if (pkt->dts == AV_NOPTS_VALUE)
                 pkt->dts = st->cur_dts;
