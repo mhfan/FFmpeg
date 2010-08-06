@@ -26,6 +26,7 @@
 #else
 #include <stdlib.h>
 #include <stdint.h>
+#include "types.h"
 #endif /* ROCKBOX */
 
 /* {sin(2*i*PI/4096, cos(2*i*PI/4096)}, with i = 0 to 512 */

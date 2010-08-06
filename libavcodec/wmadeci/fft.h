@@ -18,10 +18,15 @@
  */
 #ifndef CODECLIB_FFT_H_INCLUDED
 #define CODECLIB_FFT_H_INCLUDED
- 
+
 #include <inttypes.h>
+
+#ifdef ROCKBOX
 typedef int32_t fixed32; 
 typedef int64_t fixed64;
+#else
+#define ff_fft_calc_c ff_fft_cal_fixed_c
+#endif	/* comment by mhfan */
 
 #define FFT_FIXED
 

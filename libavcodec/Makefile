@@ -428,6 +428,16 @@ OBJS-$(CONFIG_VP8_DECODER)             += vp8.o vp8dsp.o vp56rac.o
 OBJS-$(CONFIG_VQA_DECODER)             += vqavideo.o
 OBJS-$(CONFIG_WAVPACK_DECODER)         += wavpack.o
 OBJS-$(CONFIG_WMAPRO_DECODER)          += wmaprodec.o wma.o
+
+SRC_DIR := $(SRC_PATH_BARE)/lib$(NAME)
+
+WMADECI_OBJS := $(patsubst $(SRC_DIR)/%.c,%.o, \
+		$(wildcard $(SRC_DIR)/wmadeci/*.c)) \
+	$(if $(ARCH_ARM),wmadeci/mdct_arm.o,)
+
+OBJS-$(CONFIG_WMAV1I_DECODER)          += $(WMADECI_OBJS)
+OBJS-$(CONFIG_WMAV2I_DECODER)          += $(WMADECI_OBJS)
+
 OBJS-$(CONFIG_WMAV1_DECODER)           += wmadec.o wma.o aactab.o
 OBJS-$(CONFIG_WMAV1_ENCODER)           += wmaenc.o wma.o aactab.o
 OBJS-$(CONFIG_WMAV2_DECODER)           += wmadec.o wma.o aactab.o
@@ -710,11 +720,13 @@ HOSTPROGS = aac_tablegen aacps_tablegen cbrt_tablegen cos_tablegen      \
             dv_tablegen motionpixels_tablegen mpegaudio_tablegen        \
             pcm_tablegen qdm2_tablegen sinewin_tablegen
 
-DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86
+DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86 wmadeci
 
 CLEANFILES = *_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 
 include $(SRC_PATH)/subdir.mak
+
+#$(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 

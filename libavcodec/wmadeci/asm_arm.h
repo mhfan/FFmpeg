@@ -16,6 +16,8 @@
  ********************************************************************/
 #ifdef CPU_ARM
 
+#include <inttypes.h>
+
 #if !defined(_V_WIDE_MATH) && !defined(_LOW_ACCURACY_)
 #define _V_WIDE_MATH
 

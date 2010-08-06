@@ -20,7 +20,9 @@
 
 #include "wmadec.h"
 #include "wmafixed.h"
+#ifdef ROCKBOX
 #include <codecs.h>
+#endif	/* comment by mhfan */
 
 fixed64 IntTo64(int x){
     fixed64 res = 0;

@@ -20,7 +20,13 @@
 #ifndef CODECLIB_MDCT_H_INCLUDED
 #define CODECLIB_MDCT_H_INCLUDED
 
-//#include "types.h"
+#ifndef ROCKBOX
+#include "types.h"
+
+#define ff_imdct_calc ff_imdct_calc_fixed
+#define ff_imdct_half ff_imdct_half_fixed
+#endif	/* comment by mhfan */
+
 #include "fft.h"
 
 void ff_imdct_calc(unsigned int nbits, fixed32 *output, const fixed32 *input);

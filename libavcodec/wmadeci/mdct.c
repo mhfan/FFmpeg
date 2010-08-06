@@ -18,7 +18,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifdef ROCKBOX
 #include "codeclib.h"
+#endif	/* comment by mhfan */
 #include "mdct.h"
 #include "codeclib_misc.h"
 #include "mdct_lookup.h"
@@ -36,7 +38,9 @@
  * NOTE - CANNOT CURRENTLY OPERATE IN PLACE (input and output must
  *                                          not overlap or intersect at all)
  */
+#ifdef ROCKBOX
 void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input) ICODE_ATTR_TREMOR_MDCT;
+#endif	/* comment by mhfan */
 void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
 {
     int n8, n4, n2, n, j;
@@ -271,7 +275,9 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
  * This would require being able to use revtab 'inplace' (since the input
  * and output of imdct_half would then overlap somewhat)
  */
+#ifdef ROCKBOX
 void ff_imdct_calc(unsigned int nbits, fixed32 *output, const fixed32 *input) ICODE_ATTR_TREMOR_MDCT;
+#endif	/* comment by mhfan */
 #ifndef CPU_ARM
 void ff_imdct_calc(unsigned int nbits, fixed32 *output, const fixed32 *input)
 {

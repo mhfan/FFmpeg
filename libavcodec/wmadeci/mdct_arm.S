@@ -127,7 +127,8 @@ mdct_butterfly_16:
     @ mdct_butterfly_8 increments r0 by another #8*4 here
     @ at end, r0 has been incremented by #16*4
 
-    ldrpc
+    ldr     pc, [sp], #4
+    //ldrpc	// XXX:
 
 mdct_butterfly_32:
     stmdb   sp!, {r4-r11, lr}
@@ -257,7 +258,8 @@ mdct_butterfly_32:
     @ and we wanted to advance by #16*4 anyway, so just call again
     bl      mdct_butterfly_16
 
-    ldmpc   regs=r4-r11
+    ldmia   sp!, {r4-r11, pc}
+    //ldmpc   regs=r4-r11
 
     @ mdct_butterfly_generic_loop(x1, x2, T0, step, Ttop)
 mdct_butterfly_generic_loop:
@@ -433,5 +435,6 @@ mdct_butterfly_generic_loop:
     cmp     r2, r4
     bhi     1b
 
-    ldmpc   regs=r4-r11
+    ldmia   sp!, {r4-r11, pc}
+    //ldmpc   regs=r4-r11
 

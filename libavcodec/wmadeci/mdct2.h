@@ -30,6 +30,8 @@
 
 #ifdef ROCKBOX
 #include <codecs.h>
+#else
+#define mdct_backward mdct2_backward
 #endif /* ROCKBOX */
 
 #include "codeclib_misc.h"

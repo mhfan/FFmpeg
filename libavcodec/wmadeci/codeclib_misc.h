@@ -22,6 +22,10 @@
 //#include "ivorbiscodec.h"
 //#include "os_types.h"
 
+#ifndef ROCKBOX
+#include "types.h"
+#endif	/* comment by mhfan */
+
 #include "asm_arm.h"
 #include "asm_mcf5249.h"
 

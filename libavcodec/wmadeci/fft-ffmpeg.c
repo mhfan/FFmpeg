@@ -36,14 +36,18 @@
 #undef CONFIG_SMALL 
 #endif
  
-#include "fft.h"
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
 #include <inttypes.h>
 #include <time.h>
+#ifdef ROCKBOX
 #include <codecs/lib/codeclib.h>
+#else
+#include "types.h"
+#endif	/* comment by mhfan */
 
+#include "fft.h"
 #include "codeclib_misc.h"
 #include "mdct_lookup.h"
 

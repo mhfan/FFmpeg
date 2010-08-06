@@ -20,8 +20,12 @@
 #ifndef _WMADEC_H
 #define _WMADEC_H
 
+#ifdef ROCKBOX
 #include <codecs/libasf/asf.h>
 #include "ffmpeg_get_bits.h"
+#else
+#include "../get_bits.h"
+#endif	/* comment by mhfan */
 #include "types.h"
 
 //#define TRACE
@@ -162,7 +166,9 @@ typedef struct WMADecodeContext
 }
 WMADecodeContext;
 
+#ifdef ROCKBOX
 int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx);
+#endif	/* comment by mhfan */
 int wma_decode_superframe_init(WMADecodeContext* s,
                                const uint8_t *buf, int buf_size);
 int wma_decode_superframe_frame(WMADecodeContext* s,

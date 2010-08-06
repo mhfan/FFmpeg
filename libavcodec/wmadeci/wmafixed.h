@@ -28,6 +28,10 @@
 */
 
 #include "types.h"
+#ifndef ROCKBOX
+#include "mdct.h"
+#include "mdct2.h"
+#endif	/* comment by mhfan */
 
 #define PRECISION       16
 #define PRECISION64     16

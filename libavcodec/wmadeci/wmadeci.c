@@ -22,9 +22,13 @@
  * WMA compatible decoder.
  */
 
+#ifdef ROCKBOX
 #include <codecs.h>
 #include <codecs/lib/codeclib.h>
 #include <codecs/libasf/asf.h>
+#else
+#include "../avcodec.h"
+#endif	/* comment by mhfan */
 #include "wmadec.h"
 #include "wmafixed.h"
 #include "wmadata.h"
@@ -33,6 +37,7 @@ static void wma_lsp_to_curve_init(WMADecodeContext *s, int frame_len);
 
 /*declarations of statically allocated variables used to remove malloc calls*/
 
+#ifdef ROCKBOX
 fixed32 coefsarray[MAX_CHANNELS][BLOCK_MAX_SIZE] IBSS_ATTR MEM_ALIGN_ATTR;
 /*decode and window into IRAM on targets with at least 80KB of codec IRAM*/
 fixed32 frame_out_buf[MAX_CHANNELS][BLOCK_MAX_SIZE * 2] IBSS_ATTR_WMA_LARGE_IRAM MEM_ALIGN_ATTR;
@@ -59,6 +64,24 @@ VLC_TYPE vlcbuf2[VLCBUF2SIZE][2] MEM_ALIGN_ATTR;
 /* This buffer gets reused for lsp tables */
 VLC_TYPE vlcbuf3[VLCBUF3SIZE][2] MEM_ALIGN_ATTR;
 VLC_TYPE vlcbuf4[VLCBUF4SIZE][2] MEM_ALIGN_ATTR;
+#else
+static uint32_t* scratch_buf = NULL;
+
+#define DEBUGF(...) av_log(NULL, AV_LOG_ERROR, __VA_ARGS__)
+
+#undef  INIT_VLC_USE_NEW_STATIC
+#define INIT_VLC_USE_NEW_STATIC 0
+
+#define VLCBUF1SIZE 0
+#define VLCBUF2SIZE 0
+#define VLCBUF3SIZE 0
+#define VLCBUF4SIZE 0
+
+#define vlcbuf1 NULL
+#define vlcbuf2 NULL
+#define vlcbuf3 NULL
+#define vlcbuf4 NULL
+#endif	/* comment by mhfan */
 
 
 
@@ -144,8 +167,13 @@ static void init_coef_vlc(VLC *vlc,
 
     init_vlc(vlc, VLCBITS, n, table_bits, 1, 1, table_codes, 4, 4, INIT_VLC_USE_NEW_STATIC);
 
+#ifdef ROCKBOX
     run_table = runtabarray[tab];
     level_table= levtabarray[tab];
+#else
+    run_table   = av_malloc(n * sizeof(uint16_t));
+    level_table = av_malloc(n * sizeof(uint16_t));
+#endif	/* comment by mhfan */
 
     p = levels_table;
     i = 2;
@@ -165,9 +193,16 @@ static void init_coef_vlc(VLC *vlc,
     *plevel_table = level_table;
 }
 
+#ifdef ROCKBOX
 int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
+#else
+static int wma_decode_init(AVCodecContext* avctx)
+#endif	/* comment by mhfan */
 {
     
+#ifndef ROCKBOX
+    WMADecodeContext *s = avctx->priv_data;
+#endif	/* comment by mhfan */
     int i, flags2;
     fixed32 *window;
     uint8_t *extradata;
@@ -186,6 +221,7 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
     s->channel_coded[1]=0;
     s->ms_stereo=0;
 
+#ifdef ROCKBOX
     s->sample_rate = wfx->rate;
     s->nb_channels = wfx->channels;
     s->bit_rate = wfx->bitrate;
@@ -211,6 +247,36 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
     }else if (s->version == 2 && wfx->datalen >= 6){
         flags2 = extradata[4] | (extradata[5] << 8);
     }
+#else
+    if (avctx->sample_rate <= 0 ||  8 < avctx->channels ||
+	avctx->channels <= 0 || 50000 < avctx->sample_rate ||
+	avctx->bit_rate <= 0) return -1;
+    avctx->sample_fmt = SAMPLE_FMT_S16;
+
+    s->block_align = avctx->block_align;
+    s->sample_rate = avctx->sample_rate;
+    s->nb_channels = avctx->channels;
+    s->bit_rate    = avctx->bit_rate;
+
+    if (avctx->codec_id == CODEC_ID_WMAV1) s->version = 1; else
+    if (avctx->codec_id == CODEC_ID_WMAV2) s->version = 2; else {
+	av_log(avctx, AV_LOG_ERROR, "Unsupported codec: %d",
+		avctx->codec_id);	return -1;
+    }
+
+    i = MAX_CHANNELS * BLOCK_MAX_SIZE * sizeof(fixed32);
+    scratch_buf  = av_malloc(i + 32);	// XXX:
+    s->frame_out = av_malloc(i << 1);
+    s->coefs = av_malloc(i);
+
+    /* extract flag infos */
+    extradata = avctx->extradata;
+    if (s->version == 1 && 3 < avctx->extradata_size)
+        flags2 = AV_RL16(extradata + 2); else
+    if (s->version == 2 && 5 < avctx->extradata_size)
+        flags2 = AV_RL16(extradata + 4); else flags2 = 0;
+#endif	/* comment by mhfan */
+
     s->use_exp_vlc = flags2 & 0x0001;
     s->use_bit_reservoir = flags2 & 0x0002;
     s->use_variable_block_len = flags2 & 0x0004;
@@ -452,12 +518,14 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
     *  Smaller windows are handled differently.
     *  Since we don't have malloc, just statically allocate this
     */
+#ifdef ROCKBOX
     fixed32 *temp[5];
     temp[0] = stat0;
     temp[1] = stat1;
     temp[2] = stat2;
     temp[3] = stat3;
     temp[4] = stat4;
+#endif	/* comment by mhfan */
 
     /* init MDCT windows : simple sinus window */
     for(i = 0; i < s->nb_block_sizes; i++)
@@ -465,7 +533,11 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
         int n, j;
         fixed32 alpha;
         n = 1 << (s->frame_len_bits - i);
+#ifdef ROCKBOX
         window = temp[i];
+#else
+	window = av_malloc(sizeof(fixed32) * n);
+#endif	/* comment by mhfan */
          
          /* this calculates 0.5/(2*n) */
         alpha = (1<<15)>>(s->frame_len_bits - i+1);  
@@ -546,8 +618,10 @@ int wma_decode_init(WMADecodeContext* s, asf_waveformatex_t *wfx)
 
     /* since the coef2 table is the biggest and that has index 2 in coef_vlcs
        it's safe to always assign like this */
+#ifdef ROCKBOX
     runtabarray[0] = runtab_big; runtabarray[1] = runtab_small;
     levtabarray[0] = levtab_big; levtabarray[1] = levtab_small;
+#endif	/* comment by mhfan */
 
     s->coef_vlc[0].table = vlcbuf1;
     s->coef_vlc[0].table_allocated = VLCBUF1SIZE;
@@ -614,8 +688,13 @@ static void wma_lsp_to_curve_init(WMADecodeContext *s, int frame_len)
     b = itofix32(1);
     int ix = 0;
 
+#ifdef ROCKBOX
     s->lsp_pow_m_table1 = &vlcbuf3[0];
     s->lsp_pow_m_table2 = &vlcbuf3[VLCBUF3SIZE];
+#else
+    s->lsp_pow_m_table1 = &s->exp_vlc.table[0];
+    s->lsp_pow_m_table2 = &s->exp_vlc.table[s->exp_vlc.table_size];
+#endif	/* comment by mhfan */
 
     /*double check this later*/
     for(i=(1 << LSP_POW_BITS) - 1;i>=0;i--)
@@ -1234,16 +1313,23 @@ static int wma_decode_block(WMADecodeContext *s)
     for(ch = 0; ch < s->nb_channels; ++ch)
     { 
         /* BLOCK_MAX_SIZE is 2048 (samples) and MAX_CHANNELS is 2. */
+#ifdef ROCKBOX
         static uint32_t scratch_buf[BLOCK_MAX_SIZE * MAX_CHANNELS] IBSS_ATTR MEM_ALIGN_ATTR;
+#endif	/* comment by mhfan */
         if (s->channel_coded[ch])
         {
             int n4, index;
 
             n4 = s->block_len >>1;
 
+#if 0//def ROCKBOX
             ff_imdct_calc((s->frame_len_bits - bsize + 1),
                           scratch_buf,
                           (*(s->coefs))[ch]);
+#else// XXX: faster IMDCT from Vorbis
+            mdct_backward((1 << (s->block_len_bits+1)),
+		    (int32_t*)(*(s->coefs))[ch], (int32_t*)scratch_buf);
+#endif
 
             /* add in the frame */
             index = (s->frame_len / 2) + s->block_pos - n4;
@@ -1437,4 +1523,102 @@ fail:
     s->last_superframe_len = 0;
     return -1;
 }
+
+#ifndef ROCKBOX
+static int wma_decode_superframe(AVCodecContext *avctx,
+	void *data, int *data_size, AVPacket* avpkt)
+{
+    WMADecodeContext *s = avctx->priv_data;
+    const uint8_t  *buf = avpkt->data;
+    int buf_size = avpkt->size;
+    int i, j, n, size;
+
+    if (buf_size < s->block_align) return 0; else
+	buf_size = s->block_align;
+    if (!wma_decode_superframe_init(s, buf, buf_size)) return 0;
+    size = s->nb_channels * s->frame_len * sizeof(int16_t);
+
+    if (*data_size < (s->nb_frames + 1) * size * 2) {	// XXX:
+	av_log(NULL, AV_LOG_ERROR, "Insufficient output space\n");
+	s->last_superframe_len = 0;	return -1;
+    } else *data_size = 0;
+
+    for (i = 0; i < s->nb_frames; ++i) {
+	if (wma_decode_superframe_frame(s, buf, buf_size) < 0) return -1;
+
+	for (j = 0; j < s->nb_channels; ++j) {
+	    int16_t* ptr = (int16_t*)((uint8_t*)data + *data_size) + j;
+
+	    for (n = 0; n < s->frame_len; ++n) {
+		*ptr = (*s->frame_out)[j][n] >> 15;
+		 ptr += s->nb_channels;
+	    }
+	}   *data_size += size;
+    }	return buf_size;
+}
+
+static int wmaidec_end(AVCodecContext *avctx)
+{
+    WMADecodeContext *s = avctx->priv_data;
+    int i;
+
+    for (i = 0; i < s->nb_block_sizes; i++)
+        //ff_mdct_end(&s->mdct_ctx[i]);
+        av_free(s->windows[i]);
+
+    if (s->use_exp_vlc) {
+        free_vlc(&s->exp_vlc);
+    }
+    if (s->use_noise_coding) {
+        free_vlc(&s->hgain_vlc);
+    }
+    for (i = 0; i < 2; i++) {
+        free_vlc(&s->coef_vlc[i]);
+        av_free(s->run_table[i]);
+        av_free(s->level_table[i]);
+        //av_free(s->int_table[i]);
+    }
+
+    av_free(s->coefs);
+    av_free(s->frame_out);
+    av_free(scratch_buf);
+
+    return 0;
+}
+
+static av_cold void flush(AVCodecContext *avctx)
+{
+    WMADecodeContext *s = avctx->priv_data;
+
+    s->last_bitoffset = s->last_superframe_len = 0;
+}
+
+AVCodec ff_wmav1i_decoder =
+{
+    "wmav1i",
+    AVMEDIA_TYPE_AUDIO,
+    CODEC_ID_WMAV1,
+    sizeof(WMADecodeContext),
+    wma_decode_init,
+    NULL,
+    wmaidec_end,
+    wma_decode_superframe,
+    .flush = flush,
+    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 1"),
+};
+
+AVCodec ff_wmav2i_decoder =
+{
+    "wmav2i",
+    AVMEDIA_TYPE_AUDIO,
+    CODEC_ID_WMAV2,
+    sizeof(WMADecodeContext),
+    wma_decode_init,
+    NULL,
+    wmaidec_end,
+    wma_decode_superframe,
+    .flush = flush,
+    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 2"),
+};
+#endif	/* comment by mhfan */
 

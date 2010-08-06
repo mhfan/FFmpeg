@@ -298,6 +298,8 @@ void avcodec_register_all(void)
     REGISTER_DECODER (WMAPRO, wmapro);
     REGISTER_ENCDEC  (WMAV1, wmav1);
     REGISTER_ENCDEC  (WMAV2, wmav2);
+    REGISTER_DECODER (WMAV1I, wmav1i);
+    REGISTER_DECODER (WMAV2I, wmav2i);
     REGISTER_DECODER (WMAVOICE, wmavoice);
     REGISTER_DECODER (WS_SND1, ws_snd1);
 
