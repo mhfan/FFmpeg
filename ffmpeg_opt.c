@@ -69,6 +69,7 @@ float audio_drift_threshold = 0.1;
 float dts_delta_threshold   = 10;
 float dts_error_threshold   = 3600*30;
 
+int delay_per_frame   = 0;
 int audio_volume      = 256;
 int audio_sync_method = 0;
 int video_sync_method = VSYNC_AUTO;
@@ -2425,6 +2426,8 @@ const OptionDef options[] = {
         "when dumping packets, also dump the payload" },
     { "re",             OPT_BOOL | OPT_EXPERT | OPT_OFFSET,          { .off = OFFSET(rate_emu) },
         "read input at native frame rate", "" },
+    { "dpf",		HAS_ARG | OPT_FLOAT | OPT_EXPERT,	     { (void*)&delay_per_frame },
+	"read delay per frame in ms", "" },
     { "target",         HAS_ARG | OPT_PERFILE,                       { .func_arg = opt_target },
         "specify target file type (\"vcd\", \"svcd\", \"dvd\","
         " \"dv\", \"dv50\", \"pal-vcd\", \"ntsc-svcd\", ...)", "type" },

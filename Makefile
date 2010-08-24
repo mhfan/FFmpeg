@@ -107,6 +107,40 @@ endef
 
 $(foreach P,$(PROGS-yes),$(eval $(call DOPROG,$(P))))
 
+define ffvst_RULES
+include config.mak
+$(eval SUBDIR := ./)
+$(eval NAME := ffvst)
+$(eval LIBMAJOR := 0)
+$(eval LIBVERSION := 0.0.0)
+$(eval lib$(NAME)_VERSION_MAJOR = 0)
+$(eval lib$(NAME)_VERSION = 0.0.0)
+
+$(NAME).o: CPPFLAGS += -DBUILD_LIBFFVST=1
+$(NAME).o: CFLAGS += -Wno-write-strings -Wno-cast-qual
+
+$(SLIBNAME): $(NAME).o $(FF_DEP_LIBS) $(SUBDIR)lib$(NAME).ver
+	$$(CC) $(FF_LDFLAGS) $(SHFLAGS) $$< \
+		-o $(SLIBNAME_WITH_VERSION) $(FF_EXTRALIBS)
+	@$(LN_S) $(SLIBNAME_WITH_VERSION) $(SLIBNAME_WITH_MAJOR)
+	@$(LN_S) $(SLIBNAME_WITH_VERSION) $(SLIBNAME)
+
+$(LIBNAME): $(NAME).o
+	$(RM) $$@
+	$$(AR) rc $$@ $$<
+	$(RANLIB) $$@
+
+$(NAME): $(SLIBNAME) $(LIBNAME)
+	$$(CC) $(CPPFLAGS) $(CFLAGS) $(FF_LDFLAGS) \
+		-DBUILD_STANDALONE=1 -DBUILD_NO_LIBFFVST=1 \
+		-L$(BUILD_ROOT) $(SRC_PATH_BARE)/$(NAME).c \
+		-o $$@ -l$(FULLNAME) $(FF_EXTRALIBS)
+
+clean:: ; $(RM) $(NAME) $(SLIBNAME) $(LIBNAME)
+endef
+
+$(eval $(ffvst_RULES))
+
 %$(PROGSSUF)_g$(EXESUF): %.o $(FF_DEP_LIBS)
 	$(LD) $(LDFLAGS) $(LD_O) $(OBJS-$*) $(FF_EXTRALIBS)
 

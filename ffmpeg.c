@@ -273,6 +273,10 @@ static void sub2video_flush(InputStream *ist)
 
 /* end of sub2video hack */
 
+#ifdef BUILD_LIBFFVST
+#define exit(a) { exit_program(); return a; }	// XXX:
+#endif
+
 void term_exit(void)
 {
     av_log(NULL, AV_LOG_QUIET, "%s", "");
@@ -1431,7 +1435,7 @@ static void rate_emu_sleep(InputStream *ist)
         int64_t now = av_gettime() - ist->start;
         if (pts > now)
             av_usleep(pts - now);
-    }
+    } else if (delay_per_frame) av_usleep(delay_per_frame * 1000);
 }
 
 int guess_input_channel_layout(InputStream *ist)
@@ -3164,6 +3168,11 @@ int main(int argc, char **argv)
 
     atexit(exit_program);
 
+#ifdef  BUILD_LIBFFVST
+    if ((i = setjmp(long_jmpbuf))) return i;
+    using_stdin = 1;	// XXX:
+#endif
+
     setvbuf(stderr,NULL,_IONBF,0); /* win32 runtime needs this */
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
@@ -3219,6 +3228,7 @@ int main(int argc, char **argv)
         printf("bench: utime=%0.3fs maxrss=%ikB\n", ti / 1000000.0, maxrss);
     }
 
+#undef exit
     exit(0);
     return 0;
 }
