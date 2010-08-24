@@ -141,6 +141,8 @@ static char *vstats_filename;
 static FILE *vstats_file;
 static int copy_initial_nonkeyframes = 0;
 
+static int delay_per_frame = 0;
+
 static int audio_volume = 256;
 
 static int exit_on_error = 0;
@@ -631,7 +633,9 @@ void exit_program(int ret)
         av_dict_free(&output_files[i].opts);
     }
     for(i=0;i<nb_input_files;i++) {
-        av_close_input_file(input_files[i].ctx);
+        AVFormatContext *s = input_files[i].ctx;
+	input_files[i].ctx = NULL;
+        av_close_input_file(s);
     }
     for (i = 0; i < nb_input_streams; i++)
         av_dict_free(&input_streams[i].opts);
@@ -1818,7 +1822,7 @@ static int output_packet(InputStream *ist, int ist_index,
             int64_t now = av_gettime() - ist->start;
             if (pts > now)
                 usleep(pts - now);
-        }
+        } else if (delay_per_frame) usleep(delay_per_frame * 1000);
         /* if output time reached then transcode raw format,
            encode packets and output them */
         for (i = 0; i < nb_ostreams; i++) {
@@ -4327,6 +4331,7 @@ static const OptionDef options[] = {
     { "hex", OPT_BOOL | OPT_EXPERT, {(void*)&do_hex_dump},
       "when dumping packets, also dump the payload" },
     { "re", OPT_BOOL | OPT_EXPERT | OPT_OFFSET, {.off = OFFSET(rate_emu)}, "read input at native frame rate", "" },
+    { "dpf", HAS_ARG | OPT_FLOAT | OPT_EXPERT, {(void*)&delay_per_frame}, "read delay per frame in ms", "" },
     { "loop_input", OPT_BOOL | OPT_EXPERT, {(void*)&loop_input}, "deprecated, use -loop" },
     { "loop_output", HAS_ARG | OPT_INT | OPT_EXPERT, {(void*)&loop_output}, "deprecated, use -loop", "" },
     { "target", HAS_ARG | OPT_FUNC2, {(void*)opt_target}, "specify target file type (\"vcd\", \"svcd\", \"dvd\", \"dv\", \"dv50\", \"pal-vcd\", \"ntsc-svcd\", ...)", "type" },
@@ -4432,10 +4437,17 @@ static const OptionDef options[] = {
     { NULL, },
 };
 
+#define exit_program(a) { exit_program(a); return a; }	// XXX:
+
 int main(int argc, char **argv)
 {
     OptionsContext o = { 0 };
     int64_t ti;
+
+#ifdef  BUILD_LIBFFVST
+    if ((i = setjmp(long_jmpbuf))) return i;
+    using_stdin = 1;	// XXX:
+#endif
 
     reset_options(&o, 0);
 
@@ -4496,6 +4508,7 @@ int main(int argc, char **argv)
         printf("bench: utime=%0.3fs maxrss=%ikB\n", ti / 1000000.0, maxrss);
     }
 
+#undef exit_program
     exit_program(0);
     return 0;
 }
