@@ -129,7 +129,20 @@ void av_log_default_callback(void* ptr, int level, const char* fmt, va_list vl)
     }
     strcpy(prev, line);
     sanitize(line);
+
+#ifdef ANDROID
+    switch (level) {
+    case AV_LOG_FATAL:	level = ANDROID_LOG_FATAL;	break;
+    case AV_LOG_ERROR:	level = ANDROID_LOG_ERROR;	break;
+    case AV_LOG_DEBUG:	level = ANDROID_LOG_DEBUG;	break;
+    case AV_LOG_INFO:	level = ANDROID_LOG_INFO;	break;
+    case AV_LOG_WARNING:level = ANDROID_LOG_WARN;	break;
+    case AV_LOG_VERBOSE:level = ANDROID_LOG_VERBOSE;	break;
+    default:		level = ANDROID_LOG_DEFAULT;
+    }	__android_log_write(level, "FFmpeg", line);
+#else// XXX: mhfan
     colored_fputs(av_clip(level>>3, 0, 6), line);
+#endif
 }
 
 static void (*av_log_callback)(void*, int, const char*, va_list) = av_log_default_callback;

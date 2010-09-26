@@ -170,11 +170,16 @@ const char* av_default_item_name(void* ctx);
 void av_log_set_flags(int arg);
 
 #ifndef dtrace
+#undef	printf
 #undef	fprintf
 
 #if	defined(__KERNEL__)
 #define errno 0 // XXX:
 #define fprintf(_, ...) printk(__VA_ARGS__)
+#elif	defined(ANDROID)
+#include <android/log.h>
+#define fprintf(_, ...) __android_log_print(ANDROID_LOG_DEBUG, \
+	"FFmpeg", __VA_ARGS__)
 #elif	defined(LIBBB_H)
 #define fprintf(_, ...) fdprintf(STDERR_FILENO, __VA_ARGS__)
 #elif	defined(AVUTIL_LOG_H)

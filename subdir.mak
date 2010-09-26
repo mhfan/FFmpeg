@@ -49,6 +49,8 @@ ifdef SUBDIR
 $(SUBDIR)$(SLIBNAME_WITH_MAJOR): $(DEP_LIBS)
 endif
 
+ifeq ($(BUILD_WITH_FFDROID),)
+
 clean::
 	$(RM) $(addprefix $(SUBDIR),*-example$(EXESUF) *-test$(EXESUF) $(CLEANFILES) $(CLEANSUFFIXES) $(LIBSUFFIXES)) \
 	    $(foreach dir,$(DIRS),$(CLEANSUFFIXES:%=$(SUBDIR)$(dir)/%)) \
@@ -57,6 +59,8 @@ clean::
 distclean:: clean
 	$(RM) $(DISTCLEANSUFFIXES:%=$(SUBDIR)%) \
 	    $(foreach dir,$(DIRS),$(DISTCLEANSUFFIXES:%=$(SUBDIR)$(dir)/%))
+
+endif
 
 install-lib$(NAME)-shared: $(SUBDIR)$(SLIBNAME)
 	$(Q)mkdir -p "$(SHLIBDIR)"
@@ -100,3 +104,4 @@ $(EXAMPLES) $(TESTPROGS) $(TOOLS): $(THIS_LIB) $(DEP_LIBS)
 
 examples: $(EXAMPLES)
 testprogs: $(TESTPROGS)
+
