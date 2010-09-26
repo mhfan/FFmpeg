@@ -189,6 +189,9 @@ struct SwsContext *sws_getContext(int srcW, int srcH, enum AVPixelFormat srcForm
                                   SwsFilter *dstFilter, const double *param);
 #endif
 
+int sws_getDstInfo(struct SwsContext* c,
+	enum PixelFormat* dstFormat, int* dstW, int* dstH);
+
 /**
  * Scale the image slice in srcSlice and put the resulting scaled
  * slice in the image in dst. A slice is a sequence of consecutive

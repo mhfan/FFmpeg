@@ -220,6 +220,7 @@ void av_log_format_line(void *ptr, int level, const char *fmt, va_list vl,
 void av_log_set_flags(int arg);
 
 #ifndef dtrace
+#undef	printf
 #undef	fprintf
 
 #if	defined(__KERNEL__)

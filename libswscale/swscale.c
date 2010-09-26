@@ -689,6 +689,16 @@ static int swScale(SwsContext *c, const uint8_t *src[],
     return dstY - lastDstY;
 }
 
+int sws_getDstInfo(struct SwsContext* c,
+	enum PixelFormat* dstFormat, int* dstW, int* dstH)
+{
+    assert(c);
+    if (dstFormat) *dstFormat = c->dstFormat;
+    if (dstW) *dstW = c->dstW;
+    if (dstH) *dstH = c->dstH;
+    return 0;
+}
+
 static av_cold void sws_init_swScale_c(SwsContext *c)
 {
     enum AVPixelFormat srcFormat = c->srcFormat;
