@@ -2234,7 +2234,7 @@ static void fill_all_stream_timings(AVFormatContext *ic)
     }
 }
 
-static void estimate_timings_from_bit_rate(AVFormatContext *ic)
+static int estimate_timings_from_bit_rate(AVFormatContext *ic)
 {
     int64_t filesize, duration;
     int bit_rate, i;
@@ -2251,6 +2251,8 @@ static void estimate_timings_from_bit_rate(AVFormatContext *ic)
         ic->bit_rate = bit_rate;
     }
 
+    i = 0;
+
     /* if duration is already set, we believe it */
     if (ic->duration == AV_NOPTS_VALUE &&
         ic->bit_rate != 0) {
@@ -2264,6 +2266,8 @@ static void estimate_timings_from_bit_rate(AVFormatContext *ic)
             }
         }
     }
+
+    return i;
 }
 
 #define DURATION_MAX_READ_SIZE 250000LL
@@ -2409,10 +2413,33 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
         av_estimate_timings_from_pts2(ic, old_offset);
         ic->duration_estimation_method = AVFMT_DURATION_FROM_PTS;
     } else {
-        av_log(ic, AV_LOG_WARNING, "Estimating duration from bitrate, this may be inaccurate\n");
         /* less precise: use bitrate info */
-        estimate_timings_from_bit_rate(ic);
-        ic->duration_estimation_method = AVFMT_DURATION_FROM_BITRATE;
+        if (!estimate_timings_from_bit_rate(ic) &&
+		ic->pb->seekable && 1) {	// XXX:
+	    int64_t last_pts;
+	    AVPacket pkt;
+	    int i;
+
+	    //av_log(ic, AV_LOG_WARNING, "No way to guess duration!\n");
+	    av_log(ic, AV_LOG_WARNING, "Scanning file to get duration!\n");
+
+	    for (i = 1; i < ic->nb_streams; ++i)
+		ic->streams[i]->discard = AVDISCARD_ALL;
+	    last_pts = ic->streams[i = 0]->start_time;
+
+	    while (!read_frame_internal(ic, &pkt)) {
+		if (pkt.stream_index == i) last_pts = pkt.pts;
+		av_free_packet(&pkt);
+	    }
+
+	    ic->duration = av_rescale_q(last_pts,
+		    ic->streams[i]->time_base, AV_TIME_BASE_Q);
+
+	    for (i = 0; i < ic->nb_streams; ++i) av_seek_frame(ic, i, 0, 0);
+	} else {
+	    ic->duration_estimation_method = AVFMT_DURATION_FROM_BITRATE;
+	    av_log(ic, AV_LOG_WARNING, "Estimating duration from bitrate, this may be inaccurate\n");
+	}
     }
     update_stream_timings(ic);
 
