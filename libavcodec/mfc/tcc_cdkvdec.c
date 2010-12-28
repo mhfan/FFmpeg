@@ -20,10 +20,14 @@
  */
 
 /**
- * @file libavcodec/arm/tcc_cdkvdec.c
+ * @file libavcodec/mfc/tcc_cdkvdec.c
  * $Date: 2009-09-24 $
  * $Author: Jetta $
  */
+
+#include "libavcodec/avcodec.h"
+
+#ifdef CONFIG_TCCCDK
 
 #include <Virtual.h>
 #include <cdk_core.h>
@@ -33,8 +37,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-
-#include "libavcodec/avcodec.h"
 
 typedef struct CdkVdecContext {
     cdk_callback_func_t callback_func;
@@ -506,10 +508,10 @@ static av_cold int cdk_decode_close(AVCodecContext *avctx)
 }
 
 #define TCC_CODEC(id_, name_, long_name_) \
-    AVCodec name_ ## _cdk_decoder = { \
+    AVCodec ff_ ## name_ ## _cdk_decoder = { \
         .id = id_, \
         .name = "cdk_" #name_, \
-        .type = CODEC_TYPE_VIDEO, \
+        .type = AVMEDIA_TYPE_VIDEO, \
         .init   = cdk_decode_init, \
         .close  = cdk_decode_close, \
         .decode = cdk_decode_frame, \
@@ -518,9 +520,9 @@ static av_cold int cdk_decode_close(AVCodecContext *avctx)
         .long_name = NULL_IF_CONFIG_SMALL(long_name_), \
     }	// XXX: CODEC_CAP_DR1
 
-//TCC_CODEC(CODEC_ID_FLV1, flv, "TCC89XX CDK for FLV1");
+//TCC_CODEC(CODEC_ID_FLV1, flv,  "TCC89XX CDK for FLV1");
 //TCC_CODEC(CODEC_ID_H263, h263, "TCC89XX CDK for H263+/S263");
-TCC_CODEC(CODEC_ID_H264, h264, "TCC89XX CDK for MPEG-4 part 10");
+TCC_CODEC(CODEC_ID_H264, h264,   "TCC89XX CDK for MPEG-4 part 10");
 TCC_CODEC(CODEC_ID_MPEG4, mpeg4, "TCC89XX CDK for MPEG-4 part 2");
 TCC_CODEC(CODEC_ID_MPEG2VIDEO, mpeg2, "TCC89XX CDK for MPEG2 video");
 TCC_CODEC(CODEC_ID_MPEG1VIDEO, mpeg1, "TCC89XX CDK for MPEG1 video");
@@ -534,3 +536,6 @@ TCC_CODEC(CODEC_ID_WMV3, wmv3, "TCC89XX CDK for WMV3");
 TCC_CODEC(CODEC_ID_VC1, vc1, "TCC89XX CDK for VC1");
 
 #undef TCC_CODEC
+
+#endif
+

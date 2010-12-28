@@ -20,16 +20,18 @@
  */
 
 /**
- * @file libavcodec/arm/libmfc.c
+ * @file libavcodec/mfc/libmfc.c
  * $Date: 2009-01-24 $
  * $Author: Jetta $
  */
 
+#include "libavcodec/avcodec.h"
+
+#ifdef CONFIG_LIBMFC
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-
-#include "libavcodec/avcodec.h"
 
 #include "SsbSipH264Decode.h"
 #include "SsbSipMpeg4Decode.h"
@@ -400,9 +402,9 @@ static av_cold int MFC_decode_close(AVCodecContext *avctx)
 }
 
 #define MFC_CODEC(id_, name_, long_name_)		\
-    AVCodec name_ ## _mfc_decoder = {			\
+    AVCodec ff_ ## name_ ## _mfc_decoder = {		\
 	.name = "libmfc_" #name_,			\
-	.type = CODEC_TYPE_VIDEO,			\
+	.type = AVMEDIA_TYPE_VIDEO,			\
 	.id = id_,					\
 	.init	= MFC_decode_init,			\
 	.decode = MFC_decode_frame,			\
@@ -412,10 +414,13 @@ static av_cold int MFC_decode_close(AVCodecContext *avctx)
 	.long_name = NULL_IF_CONFIG_SMALL(long_name_),  \
     }
 
-MFC_CODEC(CODEC_ID_H264, h264, "LIBMFC H.264 / MPEG-4 part 10");
+MFC_CODEC(CODEC_ID_H264, h264,   "LIBMFC H.264 / MPEG-4 part 10");
 MFC_CODEC(CODEC_ID_MPEG4, mpeg4, "LIBMFC MPEG-4 part 2");
-MFC_CODEC(CODEC_ID_H263, h263, "LIBMFC H.263");
-MFC_CODEC(CODEC_ID_WMV3, wmv3, "LIBMFC WMV3");
-MFC_CODEC(CODEC_ID_VC1, vc1, "LIBMFC VC1");
+MFC_CODEC(CODEC_ID_H263, h263,   "LIBMFC H.263");
+MFC_CODEC(CODEC_ID_WMV3, wmv3,   "LIBMFC WMV3");
+MFC_CODEC(CODEC_ID_VC1, vc1,     "LIBMFC VC1");
 
 #undef MFC_CODEC
+
+#endif
+

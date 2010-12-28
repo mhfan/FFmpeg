@@ -67,12 +67,25 @@ void avcodec_register_all(void)
     REGISTER_HWACCEL (WMV3_DXVA2, wmv3_dxva2);
     REGISTER_HWACCEL (WMV3_VAAPI, wmv3_vaapi);
 
+#ifdef CONFIG_SSBMFC
+    //REGISTER_ENCDEC  (MJPEG_SSBSIP, mjpeg_ssbsip);
+    REGISTER_ENCDEC  (H263_SSBMFC, h263_ssbmfc);
+    REGISTER_ENCDEC  (H264_SSBMFC, h264_ssbmfc);
+    REGISTER_ENCDEC  (MPEG4_SSBMFC, mpeg4_ssbmfc);
+    REGISTER_DECODER (MPEG2_SSBMFC, mpeg2_ssbmfc);
+    REGISTER_DECODER (MPEG1_SSBMFC, mpeg1_ssbmfc);
+    REGISTER_DECODER (VC1_SSBMFC, vc1_ssbmfc);
+#endif
+
+#ifdef CONFIG_LIBMFC
     REGISTER_DECODER (MPEG4_MFC, mpeg4_mfc);
     REGISTER_DECODER (H264_MFC, h264_mfc);
     REGISTER_DECODER (H263_MFC, h263_mfc);
     REGISTER_DECODER (WMV3_MFC, wmv3_mfc);
     REGISTER_DECODER (VC1_MFC, vc1_mfc);
+#endif
 
+#ifdef CONFIG_TCCCDK
     REGISTER_DECODER (MPEG4_CDK, mpeg4_cdk);
     REGISTER_DECODER (MPEG2_CDK, mpeg2_cdk);
     REGISTER_DECODER (MPEG1_CDK, mpeg1_cdk);
@@ -87,6 +100,7 @@ void avcodec_register_all(void)
     //REGISTER_DECODER (WMV1_CDK, wmv1_cdk);
     REGISTER_DECODER (VC1_CDK, vc1_cdk);
     //REGISTER_DECODER (FLV_CDK, flv_cdk);
+#endif
 
     /* video codecs */
     REGISTER_ENCODER (A64MULTI, a64multi);

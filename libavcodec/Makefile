@@ -699,6 +699,8 @@ OBJS-$(!CONFIG_SMALL)                  += inverse.o
 
 -include $(SRC_PATH)/$(SUBDIR)$(ARCH)/Makefile
 
+-include $(SUBDIR)mfc/Makefile
+
 SKIPHEADERS                            += %_tablegen.h                  \
                                           %_tables.h                    \
                                           aac_tablegen_decl.h           \
@@ -720,18 +722,13 @@ HOSTPROGS = aac_tablegen aacps_tablegen cbrt_tablegen cos_tablegen      \
             dv_tablegen motionpixels_tablegen mpegaudio_tablegen        \
             pcm_tablegen qdm2_tablegen sinewin_tablegen
 
-DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86 wmadeci
+DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86 wmadeci mfc
 
 CLEANFILES = *_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 
 include $(SRC_PATH)/subdir.mak
 
 #$(SUBDIR)wmadeci/%.o: CFLAGS += $(if $(ARCH_ARM),-DCPU_ARM) #-Ilib$(NAME)
-
-$(SUBDIR)arm/tcc_cdkvdec.o: CFLAGS += -DTCC_89XX_INCLUDE=1 \
-	-I/opt/vpu-tcc/include
-
-$(SUBDIR)arm/libmfc.o: CFLAGS += -DARCH_S3C64XX=1 -I/opt/mm-s3c/include
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 
