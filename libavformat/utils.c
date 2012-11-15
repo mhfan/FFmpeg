@@ -1378,6 +1378,8 @@ static int read_frame_internal(AVFormatContext *s, AVPacket *pkt)
         if (ret < 0) {
             if (ret == AVERROR(EAGAIN))
                 return ret;
+	    if (ret == AVERROR(EIO))
+		return ret;
             /* flush the parsers */
             for(i = 0; i < s->nb_streams; i++) {
                 st = s->streams[i];
@@ -1624,6 +1626,11 @@ void ff_read_frame_flush(AVFormatContext *s)
         for(j=0; j<MAX_REORDER_DELAY+1; j++)
             st->pts_buffer[j]= AV_NOPTS_VALUE;
     }
+}
+
+void av_read_frame_flush(AVFormatContext *s)
+{
+  ff_read_frame_flush(s);
 }
 
 void ff_update_cur_dts(AVFormatContext *s, AVStream *ref_st, int64_t timestamp)
@@ -2051,10 +2058,12 @@ static int seek_frame_internal(AVFormatContext *s, int stream_index,
         ff_read_frame_flush(s);
         ret = s->iformat->read_seek(s, stream_index, timestamp, flags);
     } else
-        ret = -1;
+        ret = AVERROR(ENOSYS);
     if (ret >= 0) {
         return 0;
     }
+    if (ret != AVERROR(ENOSYS))
+        return ret;
 
     if (s->iformat->read_timestamp && !(s->iformat->flags & AVFMT_NOBINSEARCH)) {
         ff_read_frame_flush(s);
@@ -2258,6 +2267,41 @@ static void estimate_timings_from_bit_rate(AVFormatContext *ic)
 #define DURATION_MAX_READ_SIZE 250000LL
 #define DURATION_MAX_RETRY 4
 
+static void av_estimate_timings_from_pts2(AVFormatContext *ic, int64_t old_offset)
+{
+    AVStream *st;
+    int i, step= 1024;
+    int64_t ts, pos;
+
+    for(i=0;i<ic->nb_streams;i++) {
+        st = ic->streams[i];
+
+        pos = 0;
+        ts = ic->iformat->read_timestamp(ic, i, &pos, DURATION_MAX_READ_SIZE);
+        if (ts == AV_NOPTS_VALUE)
+            continue;
+        if (st->start_time > ts || st->start_time == AV_NOPTS_VALUE)
+            st->start_time = ts;
+
+        pos = avio_size(ic->pb) - 1;
+        do {
+            pos -= step;
+            ts = ic->iformat->read_timestamp(ic, i, &pos, pos + step);
+            step += step;
+        } while (ts == AV_NOPTS_VALUE && pos >= step && step < DURATION_MAX_READ_SIZE);
+
+        if (ts == AV_NOPTS_VALUE)
+            continue;
+
+        if (st->duration < ts - st->start_time || st->duration == AV_NOPTS_VALUE)
+            st->duration = ts - st->start_time;
+    }
+
+    fill_all_stream_timings(ic);
+
+    avio_seek(ic->pb, old_offset, SEEK_SET);
+}
+
 /* only usable for MPEG-PS streams */
 static void estimate_timings_from_pts(AVFormatContext *ic, int64_t old_offset)
 {
@@ -2357,6 +2401,11 @@ static void estimate_timings(AVFormatContext *ic, int64_t old_offset)
            the components */
         fill_all_stream_timings(ic);
         ic->duration_estimation_method = AVFMT_DURATION_FROM_STREAM;
+    } else if (ic->iformat->read_timestamp && 
+        file_size && ic->pb->seekable) {
+        /* get accurate estimate from the PTSes */
+        av_estimate_timings_from_pts2(ic, old_offset);
+        ic->duration_estimation_method = AVFMT_DURATION_FROM_PTS;
     } else {
         av_log(ic, AV_LOG_WARNING, "Estimating duration from bitrate, this may be inaccurate\n");
         /* less precise: use bitrate info */

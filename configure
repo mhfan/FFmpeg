@@ -269,6 +269,7 @@ Advanced options (experts only):
   --arch=ARCH              select architecture [$arch]
   --cpu=CPU                select the minimum required CPU (affects
                            instruction selection, may crash on older CPUs)
+  --custom-libname-with-major=NAME  custom library name with major [$SLIBNAME_WITH_MAJOR]
   --enable-pic             build position-independent code
   --enable-sram            allow use of on-chip SRAM
   --enable-thumb           compile for Thumb instruction set
@@ -1525,6 +1526,7 @@ CMDLINE_SET="
     cpu
     cross_prefix
     cxx
+    custom_libname_with_major
     dep_cc
     extra_version
     host_cc
@@ -3158,7 +3160,7 @@ case $target_os in
         strip="strip -d"
         ;;
     darwin)
-        gas="gas-preprocessor.pl $cc"
+        #gas="gas-preprocessor.pl $cc"
         enabled ppc && add_asflags -force_cpusubtype_ALL
         SHFLAGS='-dynamiclib -Wl,-single_module -Wl,-install_name,$(SHLIBDIR)/$(SLIBNAME_WITH_MAJOR),-current_version,$(LIBVERSION),-compatibility_version,$(LIBMAJOR)'
         enabled x86_32 && append SHFLAGS -Wl,-read_only_relocs,suppress
@@ -3401,6 +3403,8 @@ build the shared libraries as well. To only build the shared libraries specify
 EOF
     exit 1;
 fi
+
+test -n "$custom_libname_with_major" && SLIBNAME_WITH_MAJOR="$custom_libname_with_major"
 
 die_license_disabled() {
     enabled $1 || { enabled $2 && die "$2 is $1 and --enable-$1 is not specified."; }
@@ -3742,6 +3746,7 @@ check_header termios.h
 check_header unistd.h
 check_header vdpau/vdpau.h
 check_header vdpau/vdpau_x11.h
+check_cpp_condition vdpau/vdpau.h "defined(VDP_DECODER_PROFILE_MPEG4_PART2_SP)" && enable vdpau_mpeg4_support
 check_header windows.h
 check_header X11/extensions/XvMClib.h
 check_header asm/types.h
@@ -3842,7 +3847,7 @@ enabled libsoxr    && require  libsoxr soxr.h soxr_create -lsoxr
 enabled libspeex   && require  libspeex speex/speex.h speex_decoder_init -lspeex
 enabled libstagefright_h264  && require_cpp libstagefright_h264 "binder/ProcessState.h media/stagefright/MetaData.h
     media/stagefright/MediaBufferGroup.h media/stagefright/MediaDebug.h media/stagefright/MediaDefs.h
-    media/stagefright/OMXClient.h media/stagefright/OMXCodec.h" android::OMXClient -lstagefright -lmedia -lutils -lbinder -lgnustl_static
+    media/stagefright/OMXClient.h media/stagefright/OMXCodec.h" android::OMXClient -lstagefright -lmedia -lutils -lbinder #-lgnustl_static
 enabled libtheora  && require  libtheora theora/theoraenc.h th_info_init -ltheoraenc -ltheoradec -logg
 enabled libtwolame && require  libtwolame twolame.h twolame_init -ltwolame &&
                       { check_lib twolame.h twolame_encode_buffer_float32_interleaved -ltwolame ||

@@ -2153,6 +2153,7 @@ static void idr(H264Context *h)
 /* forget old pics after a seek */
 static void flush_change(H264Context *h)
 {
+    h->got_first_iframe = 0;
     h->outputed_poc = h->next_outputed_poc = INT_MIN;
     h->prev_interlaced_frame = 1;
     idr(h);

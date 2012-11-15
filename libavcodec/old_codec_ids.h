@@ -379,6 +379,10 @@
     CODEC_ID_REALTEXT   = MKBETAG('R','T','X','T'),
     CODEC_ID_SUBVIEWER  = MKBETAG('S','u','b','V'),
 
+    /* data codecs */
+    CODEC_ID_VBI_DATA= 0x17500,
+    CODEC_ID_VBI_TELETEXT,
+
     /* other specific kind of codecs (generally used for attachments) */
     CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
     CODEC_ID_TTF = 0x18000,
