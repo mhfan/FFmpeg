@@ -93,7 +93,8 @@ static void fill_picture_parameters(struct dxva_context *ctx, const H264Context 
     pp->num_ref_frames                = h->sps.ref_frame_count;
 
     pp->wBitFields                    = ((s->picture_structure != PICT_FRAME) <<  0) |
-                                        (h->sps.mb_aff                        <<  1) |
+                                        ((h->sps.mb_aff &&
+                                        (s->picture_structure == PICT_FRAME)) <<  1) |
                                         (h->sps.residual_color_transform_flag <<  2) |
                                         /* sp_for_switch_flag (not implemented by FFmpeg) */
                                         (0                                    <<  3) |
@@ -432,6 +433,14 @@ static int end_frame(AVCodecContext *avctx)
 
     if (ctx_pic->slice_count <= 0 || ctx_pic->bitstream_size <= 0)
         return -1;
+
+    // Wait for an I-frame before start decoding. Workaround for ATI UVD and UVD+ GPUs
+    if (!h->got_first_iframe) {
+        if (!(ctx_pic->pp.wBitFields & (1 << 15)))
+            return -1;
+        h->got_first_iframe = 1;
+    }
+
     return ff_dxva2_common_end_frame(avctx, s,
                                      &ctx_pic->pp, sizeof(ctx_pic->pp),
                                      &ctx_pic->qm, sizeof(ctx_pic->qm),

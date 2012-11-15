@@ -425,12 +425,17 @@ enum CodecID {
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
 
+    /* data codecs */
+    CODEC_ID_VBI_DATA= 0x17500,
+    CODEC_ID_VBI_TELETEXT,
+
     /* other specific kind of codecs (generally used for attachments) */
     CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
     CODEC_ID_TTF = 0x18000,
     CODEC_ID_BINTEXT    = MKBETAG('B','T','X','T'),
     CODEC_ID_XBIN       = MKBETAG('X','B','I','N'),
     CODEC_ID_IDF        = MKBETAG( 0 ,'I','D','F'),
+    CODEC_ID_OTF        = MKBETAG( 0 ,'O','T','F'),
 
     CODEC_ID_PROBE = 0x19000, ///< codec_id is not known (like CODEC_ID_NONE) but lavf should attempt to identify it
 

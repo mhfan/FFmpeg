@@ -2372,6 +2372,7 @@ static void flush_dpb(AVCodecContext *avctx){
             h->delayed_pic[i]->f.reference = 0;
         h->delayed_pic[i]= NULL;
     }
+	h->got_first_iframe = 0;
     h->outputed_poc=h->next_outputed_poc= INT_MIN;
     h->prev_interlaced_frame = 1;
     idr(h);
@@ -2819,6 +2820,7 @@ static int decode_slice_header(H264Context *h, H264Context *h0){
         }
         s->first_field = 0;
         h->prev_interlaced_frame = 1;
+        h->got_first_iframe = 0;
 
         init_scan_tables(h);
         if (ff_h264_alloc_tables(h) < 0) {
@@ -3627,7 +3629,7 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg){
                 return 0;
             }
             if( ret < 0 || h->cabac.bytestream > h->cabac.bytestream_end + 2) {
-                av_log(h->s.avctx, AV_LOG_ERROR, "error while decoding MB %d %d, bytestream (%td)\n", s->mb_x, s->mb_y, h->cabac.bytestream_end - h->cabac.bytestream);
+                av_log(h->s.avctx, AV_LOG_ERROR, "error while decoding MB %d %d, bytestream (%d)\n", s->mb_x, s->mb_y, h->cabac.bytestream_end - h->cabac.bytestream);
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, ER_MB_ERROR&part_mask);
                 return -1;
             }
