@@ -2193,6 +2193,14 @@ done
 enable $ARCH_EXT_LIST
 
 die_unknown(){
+    case $1 in
+	--enable*|--disable*)
+	    echo "Ignore option \"$1\"."
+	    return 0
+	;;
+    *)
+	;;
+    esac
     echo "Unknown option \"$1\"."
     echo "See $0 --help for available options."
     exit 1
