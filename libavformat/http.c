@@ -170,6 +170,7 @@ static int http_open_cnx(URLContext *h)
         if (redirects++ >= MAX_REDIRECTS)
             return AVERROR(EIO);
         location_changed = 0;
+	av_log(h, AV_LOG_VERBOSE, "HTTP redirect: %s\n", s->location);
         goto redo;
     }
     return 0;
@@ -351,7 +352,7 @@ static int http_connect(URLContext *h, const char *path, const char *local_path,
     if (!has_header(s->headers, "\r\nAccept: "))
         len += av_strlcpy(headers + len, "Accept: */*\r\n",
                           sizeof(headers) - len);
-    if (!has_header(s->headers, "\r\nRange: ") && !post)
+    if (!post && (0 < s->off || !strchr(path, '?')) && !has_header(s->headers, "\r\nRange: "))
         len += av_strlcatf(headers + len, sizeof(headers) - len,
                            "Range: bytes=%"PRId64"-\r\n", s->off);
     if (!has_header(s->headers, "\r\nConnection: "))
@@ -378,6 +379,8 @@ static int http_connect(URLContext *h, const char *path, const char *local_path,
              headers,
              authstr ? authstr : "",
              proxyauthstr ? "Proxy-" : "", proxyauthstr ? proxyauthstr : "");
+
+    av_log(h, AV_LOG_DEBUG, "HTTP requests:\n%s\n", s->buffer);
 
     av_freep(&authstr);
     av_freep(&proxyauthstr);

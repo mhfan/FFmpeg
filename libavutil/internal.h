@@ -186,7 +186,7 @@ struct AVDictionary {
  * without modification. Used to disable the definition of strings
  * (for example AVCodec long_names).
  */
-#if CONFIG_SMALL
+#if 1//CONFIG_SMALL
 #   define NULL_IF_CONFIG_SMALL(x) NULL
 #else
 #   define NULL_IF_CONFIG_SMALL(x) x
